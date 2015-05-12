@@ -104,6 +104,7 @@ public class EndpointManager {
 	 * To listen on specific interfaces or ports, set the default endpoint manually.
 	 * To distinguish different interfaces, one endpoint per interface must be added.
 	 */
+	@Deprecated
 	private synchronized void createDefaultEndpoint() {
 		if (default_endpoint != null) return;
 		
@@ -112,7 +113,7 @@ public class EndpointManager {
 		try {
 			default_endpoint.start();
 			LOGGER.log(Level.INFO, "Created implicit default endpoint " + default_endpoint.getAddress());
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			LOGGER.log(Level.SEVERE, "Could not create default endpoint", e);
 		}
 	}
@@ -121,7 +122,7 @@ public class EndpointManager {
 	 * Configures a new default endpoint. Any old default endpoint is destroyed.
 	 * @param endpoint the new default endpoint
 	 */
-	public void setDefaultEndpoint(Endpoint endpoint) {
+	public void setDefaultEndpoint(final Endpoint endpoint) {
 		
 		if (this.default_endpoint!=null) {
 			this.default_endpoint.destroy();
@@ -134,7 +135,7 @@ public class EndpointManager {
 		if (!this.default_endpoint.isStarted()) {
 			try {
 				default_endpoint.start();
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				LOGGER.log(Level.SEVERE, "Could not start new default endpoint", e);
 			}
 		}
@@ -157,12 +158,13 @@ public class EndpointManager {
 			if (default_secure_endpoint == null) {
 				createDefaultSecureEndpoint();
 			}
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			LOGGER.log(Level.SEVERE, "Exception while getting the default secure endpoint", e);
 		}
 		return default_secure_endpoint;
 	}
 	
+	@Deprecated
 	private synchronized void createDefaultSecureEndpoint() {
 		if (default_secure_endpoint != null) return;
 		
@@ -173,7 +175,7 @@ public class EndpointManager {
 	 * Configures a new default secure endpoint. Any old default endpoint is destroyed.
 	 * @param endpoint the new default endpoint
 	 */
-	public void setDefaultSecureEndpoint(Endpoint endpoint) {
+	public void setDefaultSecureEndpoint(final Endpoint endpoint) {
 
 		if (this.default_secure_endpoint!=null) {
 			this.default_secure_endpoint.destroy();
@@ -185,22 +187,22 @@ public class EndpointManager {
 			try {
 				default_secure_endpoint.start();
 				LOGGER.log(Level.INFO, "Started new default secure endpoint " + default_endpoint.getAddress());
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				LOGGER.log(Level.SEVERE, "Could not start new default secure endpoint", e);
 			}
 		}
 	}
 
 	public Collection<InetAddress> getNetworkInterfaces() {
-		Collection<InetAddress> interfaces = new LinkedList<InetAddress>();
+		final Collection<InetAddress> interfaces = new LinkedList<InetAddress>();
 		try {
-			Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
-	        for (NetworkInterface netint : Collections.list(nets)) {
-	        	Enumeration<InetAddress> inetAddresses = netint.getInetAddresses();
+			final Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
+	        for (final NetworkInterface netint : Collections.list(nets)) {
+	        	final Enumeration<InetAddress> inetAddresses = netint.getInetAddresses();
 	        	if (inetAddresses.hasMoreElements())
 	        		interfaces.add(inetAddresses.nextElement());
 	        }
-		} catch (SocketException e) {
+		} catch (final SocketException e) {
 			e.printStackTrace();
 		}
 		return interfaces;
@@ -211,7 +213,7 @@ public class EndpointManager {
 	 * Clear the state for deduplication in both default endpoints.
 	 */
 	public static void clear() {
-		EndpointManager it = getEndpointManager();
+		final EndpointManager it = getEndpointManager();
 		if (it.default_endpoint != null)
 			it.default_endpoint.clear();
 		if (it.default_secure_endpoint != null)
@@ -230,7 +232,7 @@ public class EndpointManager {
 		 * @see ch.inf.vs.californium.MessageDeliverer#deliverRequest(ch.inf.vs.californium.network.Exchange)
 		 */
 		@Override
-		public void deliverRequest(Exchange exchange) {
+		public void deliverRequest(final Exchange exchange) {
 			LOGGER.severe("Default endpoint without CoapServer has received a request.");
 			exchange.sendReject();
 		}
@@ -239,7 +241,7 @@ public class EndpointManager {
 		 * @see ch.inf.vs.californium.MessageDeliverer#deliverResponse(ch.inf.vs.californium.network.Exchange, ch.inf.vs.californium.coap.Response)
 		 */
 		@Override
-		public void deliverResponse(Exchange exchange, Response response) {
+		public void deliverResponse(final Exchange exchange, final Response response) {
 			if (exchange == null) throw new NullPointerException();
 			if (exchange.getRequest() == null) throw new NullPointerException();
 			if (response == null) throw new NullPointerException();
