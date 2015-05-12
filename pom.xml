@@ -12,7 +12,7 @@
 
 	<groupId>org.eclipse.californium</groupId>
 	<artifactId>root</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>99.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>Californium (Cf) Root</name>
@@ -84,7 +84,7 @@
 		<module>cf-benchmark</module>
 	</modules>
 	
-	<distributionManagement>
+<!--  	<distributionManagement>
 		<repository>
 			<id>repo.eclipse.org</id>
 			<name>Californium Repository - Releases</name>
@@ -95,15 +95,29 @@
 			<name>Californium Repository - Snapshots</name>
 			<url>https://repo.eclipse.org/content/repositories/californium-snapshots/</url>
 		</snapshotRepository>
-	</distributionManagement>
+	</distributionManagement>-->
 	
-	<repositories>
+	<distributionManagement>
+    	<snapshotRepository>
+      		<id>thirdparty-snapshot</id>
+      		<url>http://localhost:1234/nexus/content/repositories/thirdparty-snapshot</url>
+    	</snapshotRepository>
+  	</distributionManagement>
+  	
+  	<repositories>
+  		<repository>
+			<id>thirdparty-snapshot</id>
+			<url>http://localhost:1234/nexus/content/repositories/thirdparty-snapshot</url>
+		</repository>
+	</repositories>
+	
+<!--  	<repositories>
 		<repository>
 			<id>repo.eclipse.org</id>
 			<name>Californium Repository</name>
 			<url>https://repo.eclipse.org/content/repositories/californium/</url>
 		</repository>
-	</repositories>
+	</repositories>-->
 
 	<profiles>
 		<profile>
