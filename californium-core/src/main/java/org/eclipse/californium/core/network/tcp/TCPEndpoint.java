@@ -15,11 +15,11 @@ import org.eclipse.californium.core.coap.EmptyMessage;
 import org.eclipse.californium.core.coap.Message;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
-import org.eclipse.californium.core.network.Connectors;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.EndpointManager.ClientMessageDeliverer;
 import org.eclipse.californium.core.network.EndpointObserver;
 import org.eclipse.californium.core.network.Exchange;
+import org.eclipse.californium.core.network.Matcher;
 import org.eclipse.californium.core.network.Outbox;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.interceptors.MessageInterceptor;
@@ -27,10 +27,12 @@ import org.eclipse.californium.core.network.serialization.DataParser;
 import org.eclipse.californium.core.network.serialization.Serializer;
 import org.eclipse.californium.core.network.stack.CoapStack;
 import org.eclipse.californium.core.server.MessageDeliverer;
-import org.eclipse.californium.elements.Connector;
+import org.eclipse.californium.elements.ConnectorBuilder;
 import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
+import org.eclipse.californium.elements.ConnectorBuilder.LayerSemantic;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
+import org.eclipse.californium.elements.StatefulConnector;
 
 public class TCPEndpoint implements Endpoint{
 
@@ -41,7 +43,7 @@ public class TCPEndpoint implements Endpoint{
 	private final CoapStack coapstack;
 	
 	/** The connector over which the endpoint connects to the network */
-	private final Connector connector;
+	private final StatefulConnector connector;
 	
 	/** The configuration of this endpoint */
 	private final NetworkConfig config;
@@ -59,7 +61,7 @@ public class TCPEndpoint implements Endpoint{
 	private final List<MessageInterceptor> interceptors = new ArrayList<MessageInterceptor>(0);
 
 	/** The matcher which matches incoming responses, akcs and rsts an exchange */
-	private final TcpMatcher matcher;
+	private final Matcher matcher;
 	
 	/** The serializer to serialize messages to bytes */
 	private final Serializer serializer;
@@ -120,13 +122,17 @@ public class TCPEndpoint implements Endpoint{
 	 * @param connector the connector
 	 * @param config the config
 	 */
-	public TCPEndpoint(final Connector connector, final NetworkConfig config) {
+	public TCPEndpoint(final StatefulConnector connector, final NetworkConfig config) {
 		this.config = config;
 		this.connector = connector;
 		this.serializer = new Serializer();
-		this.matcher = new TcpMatcher(config);		
+		this.matcher = new Matcher(config);		
 		this.coapstack = new CoapStack(config, new OutboxImpl());
-		this.connector.setRawDataReceiver(new InboxImpl());
+//		this.connector.setRawDataReceiver(new InboxImpl());
+	}
+	
+	public void bindDataReceiver(final InetSocketAddress remote) {
+		this.connector.bindInChannelToRemote(new InboxImpl(), remote);
 	}
 	
 	/**
@@ -136,15 +142,31 @@ public class TCPEndpoint implements Endpoint{
 	 * @param config the configuration
 	 * @return the connector
 	 */
-	private static Connector createTCPConnector(final InetSocketAddress address, final NetworkConfig config, final CommunicationRole role) {
+	private static StatefulConnector createTCPConnector(final InetSocketAddress address, final NetworkConfig config, final CommunicationRole role) {
 		switch (role) {
 		case CLIENT:
-			return Connectors.getNewTCPClientEndpoint(address.getHostString(), address.getPort());
+			return getNewTCPClientEndpoint(address.getHostString(), address.getPort());
 		case SERVER:
-			return Connectors.getNewTCPServerEndpoint(address.getHostString(), address.getPort());
+			return getNewTCPServerEndpoint(address.getHostString(), address.getPort());
 		default:
 			throw new IllegalArgumentException("Cannot create a TCP connection of type " + role);
 		}
+	}
+	
+	public static StatefulConnector getNewTCPClientEndpoint(final String address, final int port) {
+		return ConnectorBuilder.createTransportLayerBuilder(LayerSemantic.TCP)
+												.setCommunicationRole(CommunicationRole.CLIENT)
+												.setAddress(address)
+												.setPort(port)
+												.buildStatfulConnector();
+	}
+	
+	public static StatefulConnector getNewTCPServerEndpoint(final String address, final int port) {
+		return ConnectorBuilder.createTransportLayerBuilder(LayerSemantic.TCP)
+												.setCommunicationRole(CommunicationRole.SERVER)
+												.setAddress(address)
+												.setPort(port)
+												.buildStatfulConnector();
 	}
 	
 	/* (non-Javadoc)
