@@ -59,12 +59,15 @@ public class GETClient {
 	
 	private final StatefulConnector conn;
 	
+	private TCPEndpoint tcpClientEndpoint;
+	
 	public GETClient(final String resource) {
 		
+		final InetSocketAddress bind = new InetSocketAddress("localhost", 5683);
 
 		 conn = ConnectorBuilder
 				.createTransportLayerBuilder(LayerSemantic.TCP)
-				.setAddress("localhost").setPort(5683)
+				.setAddress(bind.getHostName()).setPort(bind.getPort())
 				.makeSharable()
 				.setConnectionSemantics(ConnectionSemantic.NIO)
 				.setCommunicationRole(CommunicationRole.SERVER)
@@ -72,7 +75,8 @@ public class GETClient {
 				.buildStatfulConnector();
 		 
 		 try {
-			conn.start();
+			tcpClientEndpoint  = new TCPEndpoint(conn, NetworkConfig.getStandard(), CommunicationRole.SERVER);
+			tcpClientEndpoint.start();
 		} catch (final IOException e) {
 			System.err.println("Failed to start the Connector");
 			e.printStackTrace();
@@ -84,62 +88,53 @@ public class GETClient {
 		
 		private final String resource;
 
-
 		public ConnectionListener(final String resource) {
 			this.resource = resource;
 		}
-
+		
 		@Override
 		public void stateChange(final ConnectionInfo info) {
 			if(info.getConnectionState().equals(ConnectionState.NEW_INCOMING_CONNECT)) {
-				
+
 				System.out.println("New Connection from " + info.toString());
-				new Thread(new Runnable() {
-					
-					@Override
-					public void run() {
-						final CoapClient client = new CoapClient();
-						final TCPEndpoint tcpClientEndpoint  = new TCPEndpoint(conn, NetworkConfig.getStandard());
-						tcpClientEndpoint.bindDataReceiver(info.getRemote());
-						client.setEndpoint(tcpClientEndpoint);
-						client.setURI(buildURI(info.getRemote(), resource));
+				final CoapClient client = new CoapClient();
 
-						for (int i = 0; i < 15; i++) {
-							 client.get(new CoapHandler() {
-								
-								@Override
-								public void onLoad(final CoapResponse response) {
-									if (response != null) {
+				client.setEndpoint(tcpClientEndpoint);
+				client.setURI(buildURI(info.getRemote(), resource));
 
-										System.out.println(response.getCode());
-										System.out.println(response.getOptions());
-										System.out.println(response.getResponseText());
+				for (int i = 0; i < 15; i++) {
+					 client.get(new CoapHandler() {
+						
+						@Override
+						public void onLoad(final CoapResponse response) {
+							if (response != null) {
 
-										System.out.println("\nADVANCED\n");
-										// access advanced API with access to more details through
-										// .advanced()
-										System.out.println(Utils.prettyPrint(response));
-									} else {
-										System.out.println("No response received.");
-									}
-									
-								}
-								
-								@Override
-								public void onError() {
-									System.out.println("ERROR processing the request");
-								}
-							});
-							try {
-								Thread.sleep((long) (Math.random() * 5000));
-							} catch (final InterruptedException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
+								System.out.println(response.getCode());
+								System.out.println(response.getOptions());
+								System.out.println(response.getResponseText());
+
+								System.out.println("\nADVANCED\n");
+								// access advanced API with access to more details through
+								// .advanced()
+								System.out.println(Utils.prettyPrint(response));
+							} else {
+								System.out.println("No response received.");
 							}
+							
 						}
 						
+						@Override
+						public void onError() {
+							System.out.println("ERROR processing the request");
+						}
+					});
+					try {
+						Thread.sleep((long) (Math.random() * 5000));
+					} catch (final InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					}
-				}).start();
+				}
 			}
 		}
 		

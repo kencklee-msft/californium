@@ -65,8 +65,7 @@ public class HelloWorldServer extends CoapServer {
         	
             // create server
             final HelloWorldServer server = new HelloWorldServer(list);
-            final TCPEndpoint tcpClientEndpoint = new TCPEndpoint(conn, NetworkConfig.getStandard());
-            tcpClientEndpoint.bindDataReceiver(remote);
+            final TCPEndpoint tcpClientEndpoint = new TCPEndpoint(conn, NetworkConfig.getStandard(), CommunicationRole.CLIENT);
             server.addEndpoint(tcpClientEndpoint);
             server.start();
             

@@ -65,6 +65,8 @@ public class TCPEndpoint implements Endpoint{
 	
 	/** The serializer to serialize messages to bytes */
 	private final Serializer serializer;
+
+	private final CommunicationRole role;
 	
 	/**
 	 * Instantiates a new endpoint with an ephemeral port.
@@ -112,7 +114,7 @@ public class TCPEndpoint implements Endpoint{
 	 * @param config the network configuration
 	 */
 	public TCPEndpoint(final InetSocketAddress address, final NetworkConfig config, final CommunicationRole role) {
-		this(createTCPConnector(address, config, role), config);
+		this(createTCPConnector(address, config, role), config, role);
 	}
 	
 	/**
@@ -122,17 +124,14 @@ public class TCPEndpoint implements Endpoint{
 	 * @param connector the connector
 	 * @param config the config
 	 */
-	public TCPEndpoint(final StatefulConnector connector, final NetworkConfig config) {
+	public TCPEndpoint(final StatefulConnector connector, final NetworkConfig config, final CommunicationRole role) {
 		this.config = config;
 		this.connector = connector;
 		this.serializer = new Serializer();
 		this.matcher = new Matcher(config);		
 		this.coapstack = new CoapStack(config, new OutboxImpl());
-//		this.connector.setRawDataReceiver(new InboxImpl());
-	}
-	
-	public void bindDataReceiver(final InetSocketAddress remote) {
-		this.connector.bindInChannelToRemote(new InboxImpl(), remote);
+		this.role = role;
+		this.connector.setRawDataReceiver(new InboxImpl());
 	}
 	
 	/**
@@ -145,15 +144,15 @@ public class TCPEndpoint implements Endpoint{
 	private static StatefulConnector createTCPConnector(final InetSocketAddress address, final NetworkConfig config, final CommunicationRole role) {
 		switch (role) {
 		case CLIENT:
-			return getNewTCPClientEndpoint(address.getHostString(), address.getPort());
+			return getNewTCPClientConnector(address.getHostString(), address.getPort());
 		case SERVER:
-			return getNewTCPServerEndpoint(address.getHostString(), address.getPort());
+			return getNewTCPServerConnector(address.getHostString(), address.getPort());
 		default:
 			throw new IllegalArgumentException("Cannot create a TCP connection of type " + role);
 		}
 	}
 	
-	public static StatefulConnector getNewTCPClientEndpoint(final String address, final int port) {
+	public static StatefulConnector getNewTCPClientConnector(final String address, final int port) {
 		return ConnectorBuilder.createTransportLayerBuilder(LayerSemantic.TCP)
 												.setCommunicationRole(CommunicationRole.CLIENT)
 												.setAddress(address)
@@ -161,9 +160,10 @@ public class TCPEndpoint implements Endpoint{
 												.buildStatfulConnector();
 	}
 	
-	public static StatefulConnector getNewTCPServerEndpoint(final String address, final int port) {
+	public static StatefulConnector getNewTCPServerConnector(final String address, final int port) {
 		return ConnectorBuilder.createTransportLayerBuilder(LayerSemantic.TCP)
 												.setCommunicationRole(CommunicationRole.SERVER)
+												.makeSharable()
 												.setAddress(address)
 												.setPort(port)
 												.buildStatfulConnector();
