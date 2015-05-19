@@ -17,21 +17,15 @@ package org.eclipse.californium.examples;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.CoapHandler;
 import org.eclipse.californium.core.CoapResponse;
 import org.eclipse.californium.core.Utils;
-import org.eclipse.californium.core.network.config.NetworkConfig;
+import org.eclipse.californium.core.network.tcp.CoapClientRegistery;
 import org.eclipse.californium.core.network.tcp.TCPEndpoint;
-import org.eclipse.californium.elements.ConnectorBuilder;
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
-import org.eclipse.californium.elements.ConnectorBuilder.ConnectionSemantic;
-import org.eclipse.californium.elements.ConnectorBuilder.LayerSemantic;
-import org.eclipse.californium.elements.StatefulConnector;
-import org.eclipse.californium.elements.tcp.ConnectionInfo;
-import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
-import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 
 
 public class GETClient {
@@ -56,53 +50,28 @@ public class GETClient {
 		final GETClient client = new GETClient(args[0]);
 
 	}
-	
-	private final StatefulConnector conn;
-	
+		
 	private TCPEndpoint tcpClientEndpoint;
 	
 	public GETClient(final String resource) {
 		
 		final InetSocketAddress bind = new InetSocketAddress("localhost", 5683);
-
-		 conn = ConnectorBuilder
-				.createTransportLayerBuilder(LayerSemantic.TCP)
-				.setAddress(bind.getHostName()).setPort(bind.getPort())
-				.makeSharable()
-				.setConnectionSemantics(ConnectionSemantic.NIO)
-				.setCommunicationRole(CommunicationRole.SERVER)
-				.setConnectionStateListener(new ConnectionListener(resource))
-				.buildStatfulConnector();
 		 
 		 try {
-			tcpClientEndpoint  = new TCPEndpoint(conn, NetworkConfig.getStandard(), CommunicationRole.SERVER);
+			tcpClientEndpoint  = TCPEndpoint.getNewTcpEndpointBuilder()
+										    .setRemoteAddress(bind.getHostName())
+										    .setPort(bind.getPort())
+										    .setAsTcpServer()
+										    .buildTcpEndpoint();
+			final ConnectionRegistryImpl regImpl = new ConnectionRegistryImpl(tcpClientEndpoint, resource);
 			tcpClientEndpoint.start();
-		} catch (final IOException e) {
-			System.err.println("Failed to start the Connector");
-			e.printStackTrace();
-		}
-		 
-	}
-	
-	private class ConnectionListener implements ConnectionStateListener {
-		
-		private final String resource;
-
-		public ConnectionListener(final String resource) {
-			this.resource = resource;
-		}
-		
-		@Override
-		public void stateChange(final ConnectionInfo info) {
-			if(info.getConnectionState().equals(ConnectionState.NEW_INCOMING_CONNECT)) {
-
-				System.out.println("New Connection from " + info.toString());
-				final CoapClient client = new CoapClient();
-
-				client.setEndpoint(tcpClientEndpoint);
-				client.setURI(buildURI(info.getRemote(), resource));
-
-				for (int i = 0; i < 15; i++) {
+			
+			while(true) {
+				 final Set<Entry<InetSocketAddress, CoapClient>> list = regImpl.getAllClient();
+				 for(final Entry<InetSocketAddress, CoapClient> clientEntry : list) {
+					 final CoapClient client = clientEntry.getValue();
+					 System.out.println("requesting resource for " + clientEntry.getKey().toString());
+					 
 					 client.get(new CoapHandler() {
 						
 						@Override
@@ -112,7 +81,7 @@ public class GETClient {
 								System.out.println(response.getCode());
 								System.out.println(response.getOptions());
 								System.out.println(response.getResponseText());
-
+					 
 								System.out.println("\nADVANCED\n");
 								// access advanced API with access to more details through
 								// .advanced()
@@ -128,26 +97,43 @@ public class GETClient {
 							System.out.println("ERROR processing the request");
 						}
 					});
-					try {
-						Thread.sleep((long) (Math.random() * 5000));
-					} catch (final InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-			}
+				 }
+					Thread.sleep((long) (Math.random() * 5000));
+
+			 }
+		} catch (final IOException e) {
+			System.err.println("Failed to start the Connector");
+			e.printStackTrace();
+		} catch (final InterruptedException e) {
+			e.printStackTrace();
 		}
+	}
+	
+	private class ConnectionRegistryImpl extends CoapClientRegistery<InetSocketAddress> {
 		
-		
-		/**
-		 * coap://127.0.0.1:5683/${string_prompt}/
-		 * @param address
-		 * @return
-		 */
-		private String buildURI(final InetSocketAddress address, final String resource) {
-			final StringBuilder sb = new StringBuilder();
-			sb.append("coap://").append(address.getHostString()).append(':').append(address.getPort()).append('/').append(resource).append('/');
-			return sb.toString();
+		private final String resource;
+
+		public ConnectionRegistryImpl(final TCPEndpoint endpoint, final String resource) {
+			super(true, endpoint);
+			this.resource = resource;
 		}
+
+		@Override
+		public InetSocketAddress configureCoapClient(final CoapClient client,  final InetSocketAddress remote) {
+			System.out.println("new Client built for " + remote.toString());
+			client.setURI(buildURI(remote, resource));
+			return remote;
+		}
+	}
+	
+	/**
+	 * coap://127.0.0.1:5683/${string_prompt}/
+	 * @param address
+	 * @return
+	 */
+	private String buildURI(final InetSocketAddress address, final String resource) {
+		final StringBuilder sb = new StringBuilder();
+		sb.append("coap://").append(address.getHostString()).append(':').append(address.getPort()).append('/').append(resource).append('/');
+		return sb.toString();
 	}
 }

@@ -20,14 +20,8 @@ import java.net.SocketException;
 
 import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.CoapServer;
-import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.tcp.TCPEndpoint;
 import org.eclipse.californium.core.server.resources.CoapExchange;
-import org.eclipse.californium.elements.ConnectorBuilder;
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
-import org.eclipse.californium.elements.ConnectorBuilder.ConnectionSemantic;
-import org.eclipse.californium.elements.ConnectorBuilder.LayerSemantic;
-import org.eclipse.californium.elements.StatefulConnector;
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 
@@ -49,23 +43,20 @@ public class HelloWorldServer extends CoapServer {
         	final String[] list = args;
         	final InetSocketAddress remote = new InetSocketAddress("localhost", 5683);
         	
-        	final StatefulConnector conn = ConnectorBuilder.createTransportLayerBuilder(LayerSemantic.TCP)
-					 .setAddress(remote.getHostName())
-					 .setPort(remote.getPort())
-					 .setConnectionSemantics(ConnectionSemantic.NIO)
-					 .setCommunicationRole(CommunicationRole.CLIENT)
-					 .setConnectionStateListener(new ConnectionStateListener() {
-						
-						@Override
-						public void stateChange(final ConnectionInfo info) {
-							System.out.println(info.toString());
-						}
-					})
-					 .buildStatfulConnector();
-        	
             // create server
             final HelloWorldServer server = new HelloWorldServer(list);
-            final TCPEndpoint tcpClientEndpoint = new TCPEndpoint(conn, NetworkConfig.getStandard(), CommunicationRole.CLIENT);
+            final TCPEndpoint tcpClientEndpoint = TCPEndpoint.getNewTcpEndpointBuilder()
+            												 .setRemoteAddress(remote.getHostName())
+            												 .setPort(remote.getPort())
+            												 .setAsTcpClient()
+            												 .buildTcpEndpoint();
+            tcpClientEndpoint.addConnectionStateListener(new ConnectionStateListener() {
+				
+				@Override
+				public void stateChange(final ConnectionInfo info) {
+					System.out.println(info.toString());
+				}
+			});
             server.addEndpoint(tcpClientEndpoint);
             server.start();
             
