@@ -28,11 +28,11 @@ import org.eclipse.californium.core.network.serialization.Serializer;
 import org.eclipse.californium.core.network.stack.CoapStack;
 import org.eclipse.californium.core.server.MessageDeliverer;
 import org.eclipse.californium.elements.ConnectorBuilder;
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
-import org.eclipse.californium.elements.ConnectorBuilder.LayerSemantic;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
+import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
+import org.eclipse.californium.elements.config.ConnectionConfig.LayerSemantic;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 
 public class TCPEndpoint implements Endpoint{
@@ -114,7 +114,7 @@ public class TCPEndpoint implements Endpoint{
 		}
 		
 		/**
-		 * Creates a new UDP connector.
+		 * Creates a new TCP connector.
 		 *
 		 * @param address the address
 		 * @param config the configuration
