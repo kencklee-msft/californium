@@ -22,6 +22,7 @@ import org.eclipse.californium.core.network.Exchange;
 import org.eclipse.californium.core.network.Matcher;
 import org.eclipse.californium.core.network.Outbox;
 import org.eclipse.californium.core.network.config.NetworkConfig;
+import org.eclipse.californium.core.network.config.TCPNetworkConfig;
 import org.eclipse.californium.core.network.interceptors.MessageInterceptor;
 import org.eclipse.californium.core.network.serialization.DataParser;
 import org.eclipse.californium.core.network.serialization.Serializer;
@@ -32,7 +33,6 @@ import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
 import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
-import org.eclipse.californium.elements.config.ConnectionConfig.LayerSemantic;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 
 public class TCPEndpoint implements Endpoint{
@@ -132,20 +132,11 @@ public class TCPEndpoint implements Endpoint{
 		}
 		
 		private StatefulConnector getNewTCPClientConnector(final String address, final int port) {
-			return ConnectorBuilder.createTransportLayerBuilder(LayerSemantic.TCP)
-													.setCommunicationRole(CommunicationRole.CLIENT)
-													.setAddress(address)
-													.setPort(port)
-													.buildStatfulConnector();
+			return ConnectorBuilder.createTransportLayerBuilder(new TCPNetworkConfig(CommunicationRole.CLIENT)).buildStatefulConnector();
 		}
 		
 		private StatefulConnector getNewTCPServerConnector(final String address, final int port) {
-			return ConnectorBuilder.createTransportLayerBuilder(LayerSemantic.TCP)
-													.setCommunicationRole(CommunicationRole.SERVER)
-													.makeSharable()
-													.setAddress(address)
-													.setPort(port)
-													.buildStatfulConnector();
+			return ConnectorBuilder.createTransportLayerBuilder(new TCPNetworkConfig(CommunicationRole.SERVER)).buildStatefulConnector();
 		}
 	}
 			
