@@ -15,8 +15,11 @@
  ******************************************************************************/
 package org.eclipse.californium.examples;
 
-import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+
+import javax.net.ssl.SSLException;
 
 import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.CoapServer;
@@ -31,7 +34,7 @@ public class HelloWorldServer extends CoapServer {
     /*
      * Application entry point.
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws KeyManagementException, SSLException, NoSuchAlgorithmException {
         
         try {
             
@@ -41,15 +44,14 @@ public class HelloWorldServer extends CoapServer {
         	}
         	
         	final String[] list = args;
-        	final InetSocketAddress remote = new InetSocketAddress("localhost", 5683);
+        	final String address = "localhost";
+        	final int port = 5684;
         	
             // create server
             final HelloWorldServer server = new HelloWorldServer(list);
-            final TCPEndpoint tcpClientEndpoint = TCPEndpoint.getNewTcpEndpointBuilder()
-            												 .setRemoteAddress(remote.getHostName())
-            												 .setPort(remote.getPort())
-            												 .setAsTcpClient()
-            												 .buildTcpEndpoint();
+            final TLSClientConnectionConfig config = new TLSClientConnectionConfig(address, port);
+            config.secure();
+            final TCPEndpoint tcpClientEndpoint = new TCPEndpoint(config);
             tcpClientEndpoint.addConnectionStateListener(new ConnectionStateListener() {
 				
 				@Override
@@ -83,8 +85,9 @@ public class HelloWorldServer extends CoapServer {
      * Definition of the Hello-World Resource
      */
     class HelloWorldResource extends CoapResource {
+    	String internalID = " ID:" +  String.valueOf(Math.abs(Math.random()*100));
         
-        public HelloWorldResource(final String id) {
+		public HelloWorldResource(final String id) {
             
             // set resource identifier
             super(id);
@@ -95,9 +98,9 @@ public class HelloWorldServer extends CoapServer {
         
         @Override
         public void handleGET(final CoapExchange exchange) {
-            
+            System.out.println("GET Revceived: " + exchange.toString());
             // respond to the request
-            exchange.respond(getName());
+            exchange.respond(String.valueOf(getName()) + internalID + " --> value: " + Math.random()*31);
         }
     }
 }

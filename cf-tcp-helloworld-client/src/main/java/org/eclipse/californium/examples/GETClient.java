@@ -17,6 +17,7 @@ package org.eclipse.californium.examples;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -34,7 +35,7 @@ public class GETClient {
 	 * Application entry point.
 	 * 
 	 */	
-	public static void main(String args[]) {
+	public static void main(String args[]) throws NoSuchAlgorithmException {
 		if (args.length == 0) {
 			// display help
 			System.out.println("Californium (Cf) GET Client");
@@ -53,16 +54,16 @@ public class GETClient {
 		
 	private TCPEndpoint tcpClientEndpoint;
 	
-	public GETClient(final String resource) {
+	public GETClient(final String resource) throws NoSuchAlgorithmException {
 		
-		final InetSocketAddress bind = new InetSocketAddress("localhost", 5683);
+		final String address = "localhost";
+		final int port = 5684;
 		 
 		 try {
-			tcpClientEndpoint  = TCPEndpoint.getNewTcpEndpointBuilder()
-										    .setRemoteAddress(bind.getHostName())
-										    .setPort(bind.getPort())
-										    .setAsTcpServer()
-										    .buildTcpEndpoint();
+			 final TLSServerConnectionConfig config = new TLSServerConnectionConfig(address, port);
+			 final String keystore = "PATH";
+			 config.secure("TLS", "", new String[]{keystore}, "TLSv1.1", "TLSv1.2");
+			tcpClientEndpoint  = new TCPEndpoint(config);
 			final ConnectionRegistryImpl regImpl = new ConnectionRegistryImpl(tcpClientEndpoint, resource);
 			tcpClientEndpoint.start();
 			

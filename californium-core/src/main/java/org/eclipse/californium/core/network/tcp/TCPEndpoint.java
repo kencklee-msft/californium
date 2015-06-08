@@ -22,18 +22,19 @@ import org.eclipse.californium.core.network.Exchange;
 import org.eclipse.californium.core.network.Matcher;
 import org.eclipse.californium.core.network.Outbox;
 import org.eclipse.californium.core.network.config.NetworkConfig;
-import org.eclipse.californium.core.network.config.TCPNetworkConfig;
 import org.eclipse.californium.core.network.interceptors.MessageInterceptor;
 import org.eclipse.californium.core.network.serialization.DataParser;
 import org.eclipse.californium.core.network.serialization.Serializer;
 import org.eclipse.californium.core.network.stack.CoapStack;
 import org.eclipse.californium.core.server.MessageDeliverer;
-import org.eclipse.californium.elements.ConnectorBuilder;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
 import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
+import org.eclipse.californium.elements.config.TCPConnectionConfig;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
+import org.eclipse.californium.elements.tcp.client.TcpClientConnector;
+import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
 
 public class TCPEndpoint implements Endpoint{
 
@@ -66,79 +67,6 @@ public class TCPEndpoint implements Endpoint{
 	
 	/** The serializer to serialize messages to bytes */
 	private final Serializer serializer;
-	
-	public static TCPEndpointBuilder getNewTcpEndpointBuilder() {
-		return new TCPEndpointBuilder();
-	}
-	
-	/**
-	 * switch to builder construction,
-	 * NetworkConfig needs to be use here are some point
-	 * @author Simon Lemay
-	 *
-	 */
-	public static class TCPEndpointBuilder {
-		private String hostname;
-		private int port;
-		private CommunicationRole role;
-		
-		private TCPEndpointBuilder(){};
-		
-		public TCPEndpointBuilder setRemoteAddress(final String hostname) {
-			this.hostname = hostname;
-			return this;
-		}
-		
-		public TCPEndpointBuilder setPort(final int port) {
-			this.port = port;
-			return this;
-		}
-		
-		public TCPEndpointBuilder setAsTcpClient() {
-			role = CommunicationRole.CLIENT;
-			return this;
-		}
-		
-		public TCPEndpointBuilder setAsTcpServer() {
-			role = CommunicationRole.SERVER;
-			return this;
-		}
-		
-		public TCPEndpoint buildTcpEndpoint() {
-			if(role == null) {
-				throw new IllegalArgumentException("Communication Cannot be null, connection must be either a Client or a Server");
-			}
-			final InetSocketAddress address = (hostname == null)?new InetSocketAddress(port):new InetSocketAddress(hostname, port);
-			final StatefulConnector connector = createTCPConnector(address, role);
-			return new TCPEndpoint(connector);
-		}
-		
-		/**
-		 * Creates a new TCP connector.
-		 *
-		 * @param address the address
-		 * @param config the configuration
-		 * @return the connector
-		 */
-		private StatefulConnector createTCPConnector(final InetSocketAddress address, final CommunicationRole role) {
-			switch (role) {
-			case CLIENT:
-				return getNewTCPClientConnector(address.getHostString(), address.getPort());
-			case SERVER:
-				return getNewTCPServerConnector(address.getHostString(), address.getPort());
-			default:
-				throw new IllegalArgumentException("Cannot create a TCP connection of type " + role);
-			}
-		}
-		
-		private StatefulConnector getNewTCPClientConnector(final String address, final int port) {
-			return ConnectorBuilder.createTransportLayerBuilder(new TCPNetworkConfig(CommunicationRole.CLIENT)).buildStatefulConnector();
-		}
-		
-		private StatefulConnector getNewTCPServerConnector(final String address, final int port) {
-			return ConnectorBuilder.createTransportLayerBuilder(new TCPNetworkConfig(CommunicationRole.SERVER)).buildStatefulConnector();
-		}
-	}
 			
 	/**
 	 * Instantiates a new endpoint with the specified connector and
@@ -147,12 +75,14 @@ public class TCPEndpoint implements Endpoint{
 	 * @param connector the connector
 	 * @param config the config
 	 */
-	private TCPEndpoint(final StatefulConnector connector) {
+	public TCPEndpoint(final TCPConnectionConfig connectionConfig) {
 		this.config = NetworkConfig.getStandard();
-		this.connector = connector;
 		this.serializer = new Serializer();
 		this.matcher = new Matcher(config);		
 		this.coapstack = new CoapStack(config, new OutboxImpl());
+		this.connector = connectionConfig.getCommunicationRole().equals(CommunicationRole.CLIENT) ? 
+														 new TcpClientConnector(connectionConfig) :
+														 new TcpServerConnector(connectionConfig);
 		this.connector.setRawDataReceiver(new InboxImpl());
 	}
 	
