@@ -40,34 +40,34 @@ public class TCPEndpoint implements Endpoint{
 
 	/** the logger. */
 	private final static Logger LOGGER = Logger.getLogger(TCPEndpoint.class.getCanonicalName());
-	
+
 	/** The stack of layers that make up the CoAP protocol */
 	private final CoapStack coapstack;
-	
+
 	/** The connector over which the endpoint connects to the network */
 	private final StatefulConnector connector;
-	
+
 	/** The configuration of this endpoint */
 	private final NetworkConfig config;
-	
+
 	/** The executor to run tasks for this endpoint and its layers */
 	private ScheduledExecutorService executor;
-	
+
 	/** Indicates if the endpoint has been started */
 	private boolean started;
-	
+
 	/** The list of endpoint observers (has nothing to do with CoAP observe relations) */
 	private final List<EndpointObserver> observers = new ArrayList<EndpointObserver>(0);
-	
+
 	/** The list of interceptors */
 	private final List<MessageInterceptor> interceptors = new ArrayList<MessageInterceptor>(0);
 
 	/** The matcher which matches incoming responses, akcs and rsts an exchange */
 	private final Matcher matcher;
-	
+
 	/** The serializer to serialize messages to bytes */
 	private final Serializer serializer;
-			
+
 	/**
 	 * Instantiates a new endpoint with the specified connector and
 	 * configuration.
@@ -81,11 +81,11 @@ public class TCPEndpoint implements Endpoint{
 		this.matcher = new Matcher(config);		
 		this.coapstack = new CoapStack(config, new OutboxImpl());
 		this.connector = connectionConfig.getCommunicationRole().equals(CommunicationRole.CLIENT) ? 
-														 new TcpClientConnector(connectionConfig) :
-														 new TcpServerConnector(connectionConfig);
+					new TcpClientConnector(connectionConfig) :
+					new TcpServerConnector(connectionConfig);
 		this.connector.setRawDataReceiver(new InboxImpl());
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#start()
 	 */
@@ -95,13 +95,13 @@ public class TCPEndpoint implements Endpoint{
 			LOGGER.log(Level.FINE, "Endpoint at " + getAddress().toString() + " is already started");
 			return;
 		}
-		
+
 		if (!this.coapstack.hasDeliverer())
 			this.coapstack.setDeliverer(new ClientMessageDeliverer());
-		
+
 		if (this.executor == null) {
 			LOGGER.config("Endpoint "+toString()+" requires an executor to start. Using default single-threaded daemon executor.");
-			
+
 			final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new Utils.DaemonThreadFactory());
 			setExecutor(executor);
 			addObserver(new EndpointObserver() {
@@ -115,10 +115,10 @@ public class TCPEndpoint implements Endpoint{
 				}
 			});
 		}
-		
+
 		try {
 			LOGGER.log(Level.INFO, "Starting endpoint at " + getAddress());
-			
+
 			started = true;
 			matcher.start();
 			connector.start();
@@ -131,7 +131,7 @@ public class TCPEndpoint implements Endpoint{
 			throw e;
 		}
 	}
-	
+
 	/**
 	 * Makes sure that the executor has started, i.e., a thread has been
 	 * created. This is necessary for the server because it makes sure a
@@ -146,7 +146,7 @@ public class TCPEndpoint implements Endpoint{
 			public void run() { /* do nothing */ }
 		});
 	}
-	
+
 	/**
 	 * add a connection state listener
 	 * @param listener
@@ -154,7 +154,7 @@ public class TCPEndpoint implements Endpoint{
 	public void addConnectionStateListener(final ConnectionStateListener listener) {
 		connector.addConnectionStateListener(listener);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#stop()
 	 */
@@ -172,7 +172,7 @@ public class TCPEndpoint implements Endpoint{
 			matcher.clear();
 		}
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#destroy()
 	 */
@@ -185,7 +185,7 @@ public class TCPEndpoint implements Endpoint{
 		for (final EndpointObserver obs:observers)
 			obs.destroyed(this);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#clear()
 	 */
@@ -193,7 +193,7 @@ public class TCPEndpoint implements Endpoint{
 	public void clear() {
 		matcher.clear();
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#isStarted()
 	 */
@@ -201,7 +201,7 @@ public class TCPEndpoint implements Endpoint{
 	public boolean isStarted() {
 		return started;
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#setExecutor(java.util.concurrent.ScheduledExecutorService)
 	 */
@@ -211,7 +211,7 @@ public class TCPEndpoint implements Endpoint{
 		this.coapstack.setExecutor(executor);
 		this.matcher.setExecutor(executor);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#addObserver(org.eclipse.californium.core.network.EndpointObserver)
 	 */
@@ -219,7 +219,7 @@ public class TCPEndpoint implements Endpoint{
 	public void addObserver(final EndpointObserver obs) {
 		observers.add(obs);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#removeObserver(org.eclipse.californium.core.network.EndpointObserver)
 	 */
@@ -227,7 +227,7 @@ public class TCPEndpoint implements Endpoint{
 	public void removeObserver(final EndpointObserver obs) {
 		observers.remove(obs);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#addInterceptor(org.eclipse.californium.core.network.MessageIntercepter)
 	 */
@@ -235,7 +235,7 @@ public class TCPEndpoint implements Endpoint{
 	public void addInterceptor(final MessageInterceptor interceptor) {
 		interceptors.add(interceptor);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#removeInterceptor(org.eclipse.californium.core.network.MessageIntercepter)
 	 */
@@ -243,7 +243,7 @@ public class TCPEndpoint implements Endpoint{
 	public void removeInterceptor(final MessageInterceptor interceptor) {
 		interceptors.remove(interceptor);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#getInterceptors()
 	 */
@@ -251,7 +251,7 @@ public class TCPEndpoint implements Endpoint{
 	public List<MessageInterceptor> getInterceptors() {
 		return new ArrayList<MessageInterceptor>(interceptors);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#sendRequest(org.eclipse.californium.core.coap.Request)
 	 */
@@ -268,7 +268,7 @@ public class TCPEndpoint implements Endpoint{
 			}
 		});
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#sendResponse(org.eclipse.californium.core.network.Exchange, org.eclipse.californium.core.coap.Response)
 	 */
@@ -277,18 +277,18 @@ public class TCPEndpoint implements Endpoint{
 		// TODO: If the currently executing thread is not a thread of the
 		// executor, a new task on the executor should be created to send the
 		// response. (Just uncomment this code)
-//		executor.execute(new Runnable() {
-//			public void run() {
-//				try {
-//					coapstack.sendResponse(exchange, response);
-//				} catch (Exception e) {
-//					e.printStackTrace();
-//				}
-//			}
-//		});
+		//		executor.execute(new Runnable() {
+		//			public void run() {
+		//				try {
+		//					coapstack.sendResponse(exchange, response);
+		//				} catch (Exception e) {
+		//					e.printStackTrace();
+		//				}
+		//			}
+		//		});
 		coapstack.sendResponse(exchange, response);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#sendEmptyMessage(org.eclipse.californium.core.network.Exchange, org.eclipse.californium.core.coap.EmptyMessage)
 	 */
@@ -305,7 +305,7 @@ public class TCPEndpoint implements Endpoint{
 			}
 		});
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#setMessageDeliverer(org.eclipse.californium.core.server.MessageDeliverer)
 	 */
@@ -313,7 +313,7 @@ public class TCPEndpoint implements Endpoint{
 	public void setMessageDeliverer(final MessageDeliverer deliverer) {
 		coapstack.setDeliverer(deliverer);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#getAddress()
 	 */
@@ -336,17 +336,17 @@ public class TCPEndpoint implements Endpoint{
 	 * them over the connector.
 	 */
 	private class OutboxImpl implements Outbox {
-		
+
 		@Override
 		public void sendRequest(final Exchange exchange, final Request request) {
 			matcher.sendRequest(exchange, request);
-			
+
 			/* 
 			 * Logging here causes significant performance loss.
 			 * If necessary, add an interceptor that logs the messages,
 			 * e.g., the MessageTracer.
 			 */
-			
+
 			for (final MessageInterceptor interceptor:interceptors)
 				interceptor.sendRequest(request);
 
@@ -358,13 +358,13 @@ public class TCPEndpoint implements Endpoint{
 		@Override
 		public void sendResponse(final Exchange exchange, final Response response) {
 			matcher.sendResponse(exchange, response);
-			
+
 			/* 
 			 * Logging here causes significant performance loss.
 			 * If necessary, add an interceptor that logs the messages,
 			 * e.g., the MessageTracer.
 			 */
-			
+
 			for (final MessageInterceptor interceptor:interceptors)
 				interceptor.sendResponse(response);
 
@@ -376,13 +376,13 @@ public class TCPEndpoint implements Endpoint{
 		@Override
 		public void sendEmptyMessage(final Exchange exchange, final EmptyMessage message) {
 			matcher.sendEmptyMessage(exchange, message);
-			
+
 			/* 
 			 * Logging here causes significant performance loss.
 			 * If necessary, add an interceptor that logs the messages,
 			 * e.g., the MessageTracer.
 			 */
-			
+
 			for (final MessageInterceptor interceptor:interceptors)
 				interceptor.sendEmptyMessage(message);
 
@@ -391,7 +391,7 @@ public class TCPEndpoint implements Endpoint{
 				connector.send(serializer.serialize(message));
 		}
 	}
-	
+
 	/**
 	 * The connector uses this channel to forward messages (in form of
 	 * {@link RawData}) to the endpoint. The endpoint creates a new task to
@@ -407,7 +407,7 @@ public class TCPEndpoint implements Endpoint{
 				throw new NullPointerException();
 			if (raw.getPort() == 0)
 				throw new NullPointerException();
-			
+
 			// Create a new task to process this message
 			final Runnable task = new Runnable() {
 				@Override
@@ -417,7 +417,7 @@ public class TCPEndpoint implements Endpoint{
 			};
 			executeTask(task);
 		}
-		
+
 		/*
 		 * The endpoint's executor executes this method to convert the raw bytes
 		 * into a message, look for an associated exchange and forward it to
@@ -425,7 +425,7 @@ public class TCPEndpoint implements Endpoint{
 		 */
 		private void receiveMessage(final RawData raw) {
 			final DataParser parser = new DataParser(raw.getBytes());
-			
+
 			if (parser.isRequest()) {
 				// This is a request
 				Request request;
@@ -449,13 +449,13 @@ public class TCPEndpoint implements Endpoint{
 				}
 				request.setSource(raw.getAddress());
 				request.setSourcePort(raw.getPort());
-				
+
 				/* 
 				 * Logging here causes significant performance loss.
 				 * If necessary, add an interceptor that logs the messages,
 				 * e.g., the MessageTracer.
 				 */
-				
+
 				for (final MessageInterceptor interceptor:interceptors)
 					interceptor.receiveRequest(request);
 
@@ -467,19 +467,19 @@ public class TCPEndpoint implements Endpoint{
 						coapstack.receiveRequest(exchange, request);
 					}
 				}
-				
+
 			} else if (parser.isResponse()) {
 				// This is a response
 				final Response response = parser.parseResponse();
 				response.setSource(raw.getAddress());
 				response.setSourcePort(raw.getPort());
-				
+
 				/* 
 				 * Logging here causes significant performance loss.
 				 * If necessary, add an interceptor that logs the messages,
 				 * e.g., the MessageTracer.
 				 */
-				
+
 				for (final MessageInterceptor interceptor:interceptors)
 					interceptor.receiveResponse(response);
 
@@ -495,19 +495,19 @@ public class TCPEndpoint implements Endpoint{
 						reject(response);
 					}
 				}
-				
+
 			} else if (parser.isEmpty()) {
 				// This is an empty message
 				final EmptyMessage message = parser.parseEmptyMessage();
 				message.setSource(raw.getAddress());
 				message.setSourcePort(raw.getPort());
-				
+
 				/* 
 				 * Logging here causes significant performance loss.
 				 * If necessary, add an interceptor that logs the messages,
 				 * e.g., the MessageTracer.
 				 */
-				
+
 				for (final MessageInterceptor interceptor:interceptors)
 					interceptor.receiveEmptyMessage(message);
 
@@ -529,7 +529,7 @@ public class TCPEndpoint implements Endpoint{
 				LOGGER.finest("Silently ignoring non-CoAP message from " + raw.getInetSocketAddress());
 			}
 		}
-		
+
 		private void reject(final Message message) {
 			final EmptyMessage rst = EmptyMessage.newRST(message);
 			for (final MessageInterceptor interceptor:interceptors)
@@ -538,7 +538,7 @@ public class TCPEndpoint implements Endpoint{
 		}
 
 	}
-	
+
 	/**
 	 * Execute the specified task on the endpoint's executor.
 	 *

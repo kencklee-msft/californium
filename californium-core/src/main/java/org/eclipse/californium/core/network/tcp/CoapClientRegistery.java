@@ -22,11 +22,11 @@ import org.eclipse.californium.elements.tcp.ConnectionStateListener;
  *
  */
 public abstract class CoapClientRegistery<K> implements ConnectionStateListener{
-	
+
 	public final Map<K, CoapClient> coapClientRegistery;
 	private final TCPEndpoint endpoint;
-	
-	
+
+
 	public CoapClientRegistery(final boolean threadsafe, final TCPEndpoint endpoint) {
 		coapClientRegistery = threadsafe ? new HashMap<K, CoapClient>() : new ConcurrentHashMap<K, CoapClient>();
 		this.endpoint = endpoint;
@@ -48,32 +48,32 @@ public abstract class CoapClientRegistery<K> implements ConnectionStateListener{
 			coapClientRegistery.remove(info.getRemote());
 		}
 	}
-	
+
 	public void clearRegistry() {
 		coapClientRegistery.clear();
 	}
-	
+
 	public CoapClient getClient(final K key) {
 		return coapClientRegistery.get(key);
 	}
-	
+
 	public CoapClient remote(final K key) {
 		return coapClientRegistery.remove(key);
 	}
-	
+
 	public boolean containsKey(final K key) {
 		return coapClientRegistery.containsKey(key);
 	}
-	
+
 	public boolean containsCoapClient(final CoapClient client) {
 		return coapClientRegistery.containsValue(client);
 	}
-	
+
 	public Set<Entry<K, CoapClient>> getAllClient() {
 		return coapClientRegistery.entrySet();
 	}
-	
-	
+
+
 	/**
 	 * this will be call when a new connection is established.  
 	 * you will then receive an empty CoAP client with an endpoint associated with it

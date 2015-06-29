@@ -24,41 +24,41 @@ import org.eclipse.californium.core.observe.ObserveRelation;
 public class TcpMatcher {
 
 	private final static Logger LOGGER = Logger.getLogger(TcpMatcher.class.getCanonicalName());
-	
+
 	private boolean started;
 	private final ExchangeObserver exchangeObserver = new ExchangeObserverImpl();
-	
+
 	/** The executor. */
 	private ScheduledExecutorService executor;
-	
+
 	private final ConcurrentHashMap<KeyMID, Exchange> exchangesByMID; // Outgoing
 	private final ConcurrentHashMap<KeyToken, Exchange> exchangesByToken;
-	
+
 	private final ConcurrentHashMap<KeyUri, Exchange> ongoingExchanges; // for blockwise
 
 	// Idea: Only store acks/rsts and not the whole exchange. Responses should be sent CON.
-	
+
 	/** Health status output */
 	private final Level healthStatusLevel;
 	private final int healthStatusInterval; // seconds
-	
+
 	public TcpMatcher(final NetworkConfig config) {
 		this.started = false;
 		this.exchangesByMID = new ConcurrentHashMap<KeyMID, Exchange>();
 		this.exchangesByToken = new ConcurrentHashMap<KeyToken, Exchange>();
 		this.ongoingExchanges = new ConcurrentHashMap<KeyUri, Exchange>();
-		
+
 		healthStatusLevel = Level.parse(config.getString(NetworkConfig.Keys.HEALTH_STATUS_PRINT_LEVEL));
 		healthStatusInterval = config.getInt(NetworkConfig.Keys.HEALTH_STATUS_INTERVAL);
 	}
-	
+
 	public synchronized void start() {
 		if (started) return;
 		else started = true;
 		if (executor == null) {
 			throw new IllegalStateException("Matcher has no executor to schedule exchange removal");
 		}
-		
+
 		// this is a useful health metric that could later be exported to some kind of monitoring interface
 		if (LOGGER.isLoggable(healthStatusLevel)) {
 			executor.scheduleAtFixedRate(new Runnable() {
@@ -69,17 +69,17 @@ public class TcpMatcher {
 			}, healthStatusInterval, healthStatusInterval, TimeUnit.SECONDS);
 		}
 	}
-	
+
 	public synchronized void stop() {
 		if (!started) return;
 		else started = false;
 		clear();
 	}
-	
+
 	public synchronized void setExecutor(final ScheduledExecutorService executor) {
 		this.executor = executor;
 	}
-	
+
 	public void sendRequest(final Exchange exchange, final Request request) {
 		/*
 		 * The request is a CON or NON and must be prepared for these responses
@@ -87,16 +87,16 @@ public class TcpMatcher {
 		 * - NON => RST/CON+response/NON+response
 		 * If this request goes lost, we do not get anything back.
 		 */
-		
+
 		final KeyMID idByMID = new KeyMID(request.getMID(), 
 				request.getDestination().getAddress(), request.getDestinationPort());
 		final KeyToken idByTok = new KeyToken(request.getToken(),
 				request.getDestination().getAddress(), request.getDestinationPort());
-		
+
 		exchange.setObserver(exchangeObserver);
-		
+
 		LOGGER.fine("Stored open request by "+idByMID+", "+idByTok);
-		
+
 		exchangesByMID.put(idByMID, exchange);
 		exchangesByToken.put(idByTok, exchange);
 	}
@@ -111,7 +111,7 @@ public class TcpMatcher {
 		 * CON/NON request with same MID again. We then find the corresponding
 		 * exchange and the ReliabilityLayer resends this response.
 		 */
-		
+
 		if (response.getDestination() == null)
 			throw new NullPointerException("Response has no destination address set");
 		if (response.getDestinationPort() == 0)
@@ -124,7 +124,7 @@ public class TcpMatcher {
 				removeNotificatoinsOf(relation);
 			}
 		}
-		
+
 		if (response.getOptions().hasBlock2()) {
 			final Request request = exchange.getRequest();
 			final KeyUri idByUri = new KeyUri(request.getURI(),
@@ -138,7 +138,7 @@ public class TcpMatcher {
 				ongoingExchanges.remove(idByUri);
 			}
 		}
-		
+
 		// Insert CON and NON to match ACKs and RSTs to the exchange.
 		// Do not insert ACKs and RSTs.
 		if (response.getType() == Type.CON || response.getType() == Type.NON) {
@@ -146,7 +146,7 @@ public class TcpMatcher {
 					response.getDestination().getAddress(), response.getDestinationPort());
 			exchangesByMID.put(idByMID, exchange);
 		}
-		
+
 		if (response.getType() == Type.ACK || response.getType() == Type.NON) {
 			// Since this is an ACK or NON, the exchange is over with sending this response.
 			if (response.isLast()) {
@@ -156,12 +156,12 @@ public class TcpMatcher {
 	}
 
 	public void sendEmptyMessage(final Exchange exchange, final EmptyMessage message) {
-		
+
 		if (message.getType() == Type.RST && exchange != null) {
 			// We have rejected the request or response
 			exchange.setComplete();
 		}
-		
+
 		/*
 		 * We do not expect any response for an empty message
 		 */
@@ -181,7 +181,7 @@ public class TcpMatcher {
 		 * 		if nothing has been sent yet => do nothing
 		 * (Retransmission is supposed to be done by the retransm. layer)
 		 */
-				
+
 		/*
 		 * The differentiation between the case where there is a Block1 or
 		 * Block2 option and the case where there is none has the advantage that
@@ -193,18 +193,18 @@ public class TcpMatcher {
 			final Exchange exchange = new Exchange(request, Origin.REMOTE);
 			exchange.setObserver(exchangeObserver);
 			return exchange;
-			
+
 		} else {
-			
+
 			final KeyUri idByUri = new KeyUri(request.getURI(),
 					request.getSource().getAddress(), request.getSourcePort());
-			
+
 			LOGGER.fine("Lookup ongoing exchange for "+idByUri);
 			final Exchange ongoing = ongoingExchanges.get(idByUri);
 			if (ongoing != null) {
 
 				return ongoing;
-		
+
 			} else {
 				// We have no ongoing exchange for that request block. 
 				/*
@@ -214,17 +214,17 @@ public class TcpMatcher {
 				 * hash map 'ongoing' and the deduplicator. They must agree on
 				 * which exchange they store!
 				 */
-				
+
 				final Exchange exchange = new Exchange(request, Origin.REMOTE);
 				LOGGER.fine("New ongoing exchange for remote Block1 request with key "+idByUri);
 				return exchange;
-				
+
 			} // if ongoing
 		} // if blockwise
 	}
 
 	public Exchange receiveResponse(final Response response) {
-		
+
 		/*
 		 * This response could be
 		 * - The first CON/NCON/ACK+response => deliver
@@ -234,17 +234,17 @@ public class TcpMatcher {
 
 		final KeyMID idByMID = new KeyMID(response.getMID(), 
 				response.getSource().getAddress(), response.getSourcePort());
-		
+
 		final KeyToken idByTok = new KeyToken(response.getToken(), 
 				response.getSource().getAddress(), response.getSourcePort());
-		
+
 		final Exchange exchange = exchangesByToken.get(idByTok);
-		
+
 		if (exchange != null) {
 			// There is an exchange with the given token
 			LOGGER.fine("Exchange got reply: Cleaning up "+idByMID);
 			exchangesByMID.remove(idByMID);
-			
+
 			if (response.getType() == Type.ACK && exchange.getCurrentRequest().getMID() != response.getMID()) {
 				// The token matches but not the MID. This is a response for an older exchange
 				LOGGER.warning("Token matches but not MID: Expected "+exchange.getCurrentRequest().getMID()+" but was "+response.getMID());
@@ -254,7 +254,7 @@ public class TcpMatcher {
 				// this is a separate response that we can deliver
 				return exchange;
 			}
-			
+
 		} else {
 			// There is no exchange with the given token.
 			// ignore response
@@ -263,12 +263,12 @@ public class TcpMatcher {
 	}
 
 	public Exchange receiveEmptyMessage(final EmptyMessage message) {
-		
+
 		final KeyMID idByMID = new KeyMID(message.getMID(),
 				message.getSource().getAddress(), message.getSourcePort());
-		
+
 		final Exchange exchange = exchangesByMID.get(idByMID);
-		
+
 		if (exchange != null) {
 			LOGGER.fine("Exchange got reply: Cleaning up "+idByMID);
 			exchangesByMID.remove(idByMID);
@@ -279,13 +279,13 @@ public class TcpMatcher {
 			return null;
 		} // else, this is an ACK for an unknown exchange and we ignore it
 	}
-	
+
 	public void clear() {
 		this.exchangesByMID.clear();
 		this.exchangesByToken.clear();
 		this.ongoingExchanges.clear();
 	}
-	
+
 	private void removeNotificatoinsOf(final ObserveRelation relation) {
 		LOGGER.fine("Remove all remaining NON-notifications of observe relation");
 		for (final Iterator<Response> iterator = relation.getNotificationIterator(); iterator.hasNext();) {
@@ -296,28 +296,28 @@ public class TcpMatcher {
 			iterator.remove();
 		}
 	}
-	
+
 	private class ExchangeObserverImpl implements ExchangeObserver {
 
 		@Override
 		public void completed(final Exchange exchange) {
-			
+
 			/* 
 			 * Logging in this method leads to significant performance loss.
 			 * Uncomment logging code only for debugging purposes.
 			 */
-			
+
 			if (exchange.getOrigin() == Origin.LOCAL) {
 				// this endpoint created the Exchange by issuing a request
 				final Request request = exchange.getRequest();
 				final KeyToken idByTok = new KeyToken(exchange.getCurrentRequest().getToken(), request.getDestination().getAddress(), request.getDestinationPort());
 				final KeyMID idByMID = new KeyMID(request.getMID(), request.getDestination().getAddress(), request.getDestinationPort());
-				
-//				LOGGER.fine("Exchange completed: Cleaning up "+idByTok);
+
+				//				LOGGER.fine("Exchange completed: Cleaning up "+idByTok);
 				exchangesByToken.remove(idByTok);
 				// in case an empty ACK was lost
 				exchangesByMID.remove(idByMID);
-			
+
 			} else {
 				// this endpoint created the Exchange to respond a request
 				final Request request = exchange.getCurrentRequest();
@@ -325,7 +325,7 @@ public class TcpMatcher {
 					// TODO: We can optimize this and only do it, when the request really had blockwise transfer
 					final KeyUri uriKey = new KeyUri(request.getURI(),
 							request.getSource().getAddress(), request.getSourcePort());
-//					LOGGER.fine("Remote ongoing completed, cleaning up "+uriKey);
+					//					LOGGER.fine("Remote ongoing completed, cleaning up "+uriKey);
 					ongoingExchanges.remove(uriKey);
 				}
 				// TODO: What if the request is only a block?
@@ -336,10 +336,10 @@ public class TcpMatcher {
 					// only response MIDs are stored for ACK and RST, no reponse Tokens
 					final KeyMID midKey = new KeyMID(response.getMID(), 
 							response.getDestination().getAddress(), response.getDestinationPort());
-//					LOGGER.fine("Remote ongoing completed, cleaning up "+midKey);
+					//					LOGGER.fine("Remote ongoing completed, cleaning up "+midKey);
 					exchangesByMID.remove(midKey);
 				}
-				
+
 				// Remove all remaining NON-notifications if this exchange is an observe relation
 				final ObserveRelation relation = exchange.getRelation();
 				if (relation != null) {
@@ -347,6 +347,6 @@ public class TcpMatcher {
 				}
 			}
 		}
-		
+
 	}
 }

@@ -27,6 +27,11 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.californium.core.network.config.DefaultTCPConnectionConfig;
 
+/**
+ * should be deleted
+ * @author simonlemoy
+ *
+ */
 public class TLSServerConnectionConfig extends DefaultTCPConnectionConfig {
 	
 	private static final String NEW_ALGO = "NewSunX509";

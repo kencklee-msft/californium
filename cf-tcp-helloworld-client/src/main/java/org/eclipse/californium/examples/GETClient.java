@@ -29,6 +29,11 @@ import org.eclipse.californium.core.network.tcp.CoapClientRegistery;
 import org.eclipse.californium.core.network.tcp.TCPEndpoint;
 
 
+/**
+ * needs to be redone/cleaned up
+ * @author simonlemoy
+ *
+ */
 public class GETClient {
 
 	/*
@@ -61,8 +66,8 @@ public class GETClient {
 		 
 		 try {
 			 final TLSServerConnectionConfig config = new TLSServerConnectionConfig(address, port);
-			 final String keystore = "PATH";
-			 config.secure("TLS", "", new String[]{keystore}, "TLSv1.1", "TLSv1.2");
+			 final String keystore = "/Users/simonlemoy/Workspace_github/tls_tmp/server.ks";
+			 config.secure("TLS", "password", new String[]{keystore}, "TLSv1.1", "TLSv1.2");
 			tcpClientEndpoint  = new TCPEndpoint(config);
 			final ConnectionRegistryImpl regImpl = new ConnectionRegistryImpl(tcpClientEndpoint, resource);
 			tcpClientEndpoint.start();
