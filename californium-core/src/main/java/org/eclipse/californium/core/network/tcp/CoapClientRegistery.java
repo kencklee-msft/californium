@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
@@ -23,6 +25,8 @@ import org.eclipse.californium.elements.tcp.ConnectionStateListener;
  */
 public abstract class CoapClientRegistery<K> implements ConnectionStateListener{
 
+	private final static Logger LOGGER = Logger.getLogger(CoapClientRegistery.class.getCanonicalName());
+
 	public final Map<K, CoapClient> coapClientRegistery;
 	private final TCPEndpoint endpoint;
 
@@ -35,9 +39,9 @@ public abstract class CoapClientRegistery<K> implements ConnectionStateListener{
 
 	@Override
 	public void stateChange(final ConnectionInfo info) {
-		System.out.println("Incoming connection state change from " + info.getRemote() + " to  " + info.getConnectionState());
+		LOGGER.log(Level.FINE, "Incoming connection state change from " + info.getRemote() + " to  " + info.getConnectionState());
 		if(endpoint == null) {
-			System.out.println("No Endpoint setup, will not trigger creation of Client");
+			LOGGER.log(Level.FINE, "No Endpoint setup, will not trigger creation of Client");
 		}
 		if(info.getConnectionState().equals(ConnectionState.NEW_INCOMING_CONNECT)) {
 			final CoapClient client = new CoapClient();
