@@ -32,7 +32,7 @@ public abstract class CoapClientRegistry<K> implements ConnectionStateListener{
 
 
 	public CoapClientRegistry(final boolean threadsafe, final TCPEndpoint endpoint) {
-		coapClientLink = threadsafe ? new HashMap<K, CoapClient>() : new ConcurrentHashMap<K, CoapClient>();
+		coapClientLink = threadsafe ? new ConcurrentHashMap<K, CoapClient>() : new HashMap<K, CoapClient>();
 		this.endpoint = endpoint;
 		endpoint.addConnectionStateListener(this);
 	}
