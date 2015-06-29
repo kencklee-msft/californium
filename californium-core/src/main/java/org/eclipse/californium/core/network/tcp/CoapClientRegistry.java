@@ -23,16 +23,16 @@ import org.eclipse.californium.elements.tcp.ConnectionStateListener;
  * @author simonlemoy
  *
  */
-public abstract class CoapClientRegistery<K> implements ConnectionStateListener{
+public abstract class CoapClientRegistry<K> implements ConnectionStateListener{
 
-	private final static Logger LOGGER = Logger.getLogger(CoapClientRegistery.class.getCanonicalName());
+	private final static Logger LOGGER = Logger.getLogger(CoapClientRegistry.class.getCanonicalName());
 
-	public final Map<K, CoapClient> coapClientRegistery;
+	public final Map<K, CoapClient> coapClientLink;
 	private final TCPEndpoint endpoint;
 
 
-	public CoapClientRegistery(final boolean threadsafe, final TCPEndpoint endpoint) {
-		coapClientRegistery = threadsafe ? new HashMap<K, CoapClient>() : new ConcurrentHashMap<K, CoapClient>();
+	public CoapClientRegistry(final boolean threadsafe, final TCPEndpoint endpoint) {
+		coapClientLink = threadsafe ? new HashMap<K, CoapClient>() : new ConcurrentHashMap<K, CoapClient>();
 		this.endpoint = endpoint;
 		endpoint.addConnectionStateListener(this);
 	}
@@ -42,39 +42,40 @@ public abstract class CoapClientRegistery<K> implements ConnectionStateListener{
 		LOGGER.log(Level.FINE, "Incoming connection state change from " + info.getRemote() + " to  " + info.getConnectionState());
 		if(endpoint == null) {
 			LOGGER.log(Level.FINE, "No Endpoint setup, will not trigger creation of Client");
+			return;
 		}
 		if(info.getConnectionState().equals(ConnectionState.NEW_INCOMING_CONNECT)) {
 			final CoapClient client = new CoapClient();
 			client.setEndpoint(endpoint);
 			final K key = configureCoapClient(client, info.getRemote());
-			coapClientRegistery.put(key, client);
+			coapClientLink.put(key, client);
 		} else if(info.getConnectionState().equals(ConnectionState.NEW_INCOMING_DISCONNECT)) {
-			coapClientRegistery.remove(info.getRemote());
+			coapClientLink.remove(info.getRemote());
 		}
 	}
 
-	public void clearRegistry() {
-		coapClientRegistery.clear();
+	public final void clearRegistry() {
+		coapClientLink.clear();
 	}
 
-	public CoapClient getClient(final K key) {
-		return coapClientRegistery.get(key);
+	public final CoapClient getClient(final K key) {
+		return coapClientLink.get(key);
 	}
 
-	public CoapClient remote(final K key) {
-		return coapClientRegistery.remove(key);
+	public final CoapClient remote(final K key) {
+		return coapClientLink.remove(key);
 	}
 
-	public boolean containsKey(final K key) {
-		return coapClientRegistery.containsKey(key);
+	public final boolean containsKey(final K key) {
+		return coapClientLink.containsKey(key);
 	}
 
-	public boolean containsCoapClient(final CoapClient client) {
-		return coapClientRegistery.containsValue(client);
+	public final boolean containsCoapClient(final CoapClient client) {
+		return coapClientLink.containsValue(client);
 	}
 
-	public Set<Entry<K, CoapClient>> getAllClient() {
-		return coapClientRegistery.entrySet();
+	public final Set<Entry<K, CoapClient>> getAllClient() {
+		return coapClientLink.entrySet();
 	}
 
 

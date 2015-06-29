@@ -25,7 +25,7 @@ import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.CoapHandler;
 import org.eclipse.californium.core.CoapResponse;
 import org.eclipse.californium.core.Utils;
-import org.eclipse.californium.core.network.tcp.CoapClientRegistery;
+import org.eclipse.californium.core.network.tcp.CoapClientRegistry;
 import org.eclipse.californium.core.network.tcp.TCPEndpoint;
 
 
@@ -115,7 +115,7 @@ public class GETClient {
 		}
 	}
 	
-	private class ConnectionRegistryImpl extends CoapClientRegistery<InetSocketAddress> {
+	private class ConnectionRegistryImpl extends CoapClientRegistry<InetSocketAddress> {
 		
 		private final String resource;
 
