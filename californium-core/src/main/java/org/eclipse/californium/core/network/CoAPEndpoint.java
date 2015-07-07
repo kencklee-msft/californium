@@ -24,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -231,10 +232,10 @@ public class CoAPEndpoint implements Endpoint {
 	 * @see org.eclipse.californium.core.network.Endpoint#start()
 	 */
 	@Override
-	public synchronized void start() throws IOException {
+	public synchronized Future<?> start() throws IOException {
 		if (started) {
 			LOGGER.log(Level.FINE, "Endpoint at " + getAddress().toString() + " is already started");
-			return;
+			return null;
 		}
 		
 		if (!this.coapstack.hasDeliverer())
@@ -262,10 +263,11 @@ public class CoAPEndpoint implements Endpoint {
 			
 			started = true;
 			matcher.start();
-			connector.start();
+			final Future<?> result  =connector.start();
 			for (final EndpointObserver obs:observers)
 				obs.started(this);
 			startExecutor();
+			return result;
 		} catch (final IOException e) {
 			// free partially acquired resources
 			stop();
@@ -292,17 +294,19 @@ public class CoAPEndpoint implements Endpoint {
 	 * @see org.eclipse.californium.core.network.Endpoint#stop()
 	 */
 	@Override
-	public synchronized void stop() {
+	public synchronized Future<?> stop() {
 		if (!started) {
 			LOGGER.log(Level.INFO, "Endpoint at " + getAddress() + " is already stopped");
+			return null;
 		} else {
 			LOGGER.log(Level.INFO, "Stopping endpoint at address " + getAddress());
 			started = false;
-			connector.stop();
+			final Future<?> result = connector.stop();
 			matcher.stop();
 			for (final EndpointObserver obs:observers)
 				obs.stopped(this);
 			matcher.clear();
+			return result;
 		}
 	}
 	

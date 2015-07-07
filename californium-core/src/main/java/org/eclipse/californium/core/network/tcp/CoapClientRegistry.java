@@ -62,7 +62,7 @@ public abstract class CoapClientRegistry<K> implements ConnectionStateListener{
 		return coapClientLink.get(key);
 	}
 
-	public final CoapClient remote(final K key) {
+	public final CoapClient remove(final K key) {
 		return coapClientLink.remove(key);
 	}
 
