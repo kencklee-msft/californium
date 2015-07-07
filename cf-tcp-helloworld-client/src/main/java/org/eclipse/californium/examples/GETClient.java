@@ -20,6 +20,8 @@ import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.CoapHandler;
@@ -40,7 +42,7 @@ public class GETClient {
 	 * Application entry point.
 	 * 
 	 */	
-	public static void main(String args[]) throws NoSuchAlgorithmException {
+	public static void main(String args[]) throws NoSuchAlgorithmException, ExecutionException {
 		if (args.length == 0) {
 			// display help
 			System.out.println("Californium (Cf) GET Client");
@@ -59,7 +61,7 @@ public class GETClient {
 		
 	private TCPEndpoint tcpClientEndpoint;
 	
-	public GETClient(final String resource) throws NoSuchAlgorithmException {
+	public GETClient(final String resource) throws NoSuchAlgorithmException, ExecutionException {
 		
 		final String address = "localhost";
 		final int port = 5684;
@@ -70,7 +72,8 @@ public class GETClient {
 			 config.secure("TLS", "password", new String[]{keystore}, "TLSv1.1", "TLSv1.2");
 			tcpClientEndpoint  = new TCPEndpoint(config);
 			final ConnectionRegistryImpl regImpl = new ConnectionRegistryImpl(tcpClientEndpoint, resource);
-			tcpClientEndpoint.start();
+			final Future<?> connected  = tcpClientEndpoint.start();
+			connected.get();
 			
 			while(true) {
 				 final Set<Entry<InetSocketAddress, CoapClient>> list = regImpl.getAllClient();
@@ -115,7 +118,7 @@ public class GETClient {
 		}
 	}
 	
-	private class ConnectionRegistryImpl extends CoapClientRegistry<InetSocketAddress> {
+	private class ConnectionRegistryImpl extends CoapClientRegistry {
 		
 		private final String resource;
 
@@ -125,10 +128,9 @@ public class GETClient {
 		}
 
 		@Override
-		public InetSocketAddress configureCoapClient(final CoapClient client,  final InetSocketAddress remote) {
+		public void configureCoapClient(final CoapClient client,  final InetSocketAddress remote) {
 			System.out.println("new Client built for " + remote.toString());
 			client.setURI(buildURI(remote, resource));
-			return remote;
 		}
 	}
 	

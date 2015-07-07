@@ -15,9 +15,14 @@
  ******************************************************************************/
 package org.eclipse.californium.examples;
 
+import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import javax.net.ssl.SSLException;
 
@@ -25,8 +30,6 @@ import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.tcp.TCPEndpoint;
 import org.eclipse.californium.core.server.resources.CoapExchange;
-import org.eclipse.californium.elements.tcp.ConnectionInfo;
-import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 
 
 public class HelloWorldServer extends CoapServer {
@@ -52,15 +55,24 @@ public class HelloWorldServer extends CoapServer {
             final TLSClientConnectionConfig config = new TLSClientConnectionConfig(address, port);
             config.secure();
             final TCPEndpoint tcpClientEndpoint = new TCPEndpoint(config);
-            tcpClientEndpoint.addConnectionStateListener(new ConnectionStateListener() {
-				
-				@Override
-				public void stateChange(final ConnectionInfo info) {
-					System.out.println(info.toString());
-				}
-			});
+//            tcpClientEndpoint.addConnectionStateListener(new ConnectionStateListener() {
+//				
+//				@Override
+//				public void stateChange(final ConnectionInfo info) {
+//					System.out.println(info.toString());
+//				}
+//			});
             server.addEndpoint(tcpClientEndpoint);
-            server.start();
+            final Map<InetSocketAddress, Future<?>> connected = server.start();
+            for(final Entry<InetSocketAddress, Future<?>> epState : connected.entrySet()) {
+            	try {
+					epState.getValue().get();
+				} catch (final InterruptedException e) {
+					e.printStackTrace();
+				} catch (final ExecutionException e) {
+					e.printStackTrace();
+				}
+            }
             
         } catch (final SocketException e) {
             
