@@ -22,7 +22,7 @@ public class TCPEndpoint extends CoAPEndpoint {
 	}
 
 	/**
-	 * add a connection state listener
+	 * Adds a connection state listener
 	 * @param listener
 	 */
 	public void addConnectionStateListener(final ConnectionStateListener listener) {
