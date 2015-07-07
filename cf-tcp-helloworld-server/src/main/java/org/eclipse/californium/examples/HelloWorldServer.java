@@ -44,7 +44,7 @@ public class HelloWorldServer extends CoapServer {
 		try {
 
 			if(args == null || args.length == 0) {
-				System.out.println("No resource to expose was specifed, exposing default value \"TEMP\"");
+				System.out.println("No resource to expose was specified, exposing default value \"TEMP\"");
 				args = new String[]{"TEMP"};
 			}
 
@@ -86,12 +86,12 @@ public class HelloWorldServer extends CoapServer {
 	 * Constructor for a new Hello-World server. Here, the resources
 	 * of the server are initialized.
 	 */
-	public HelloWorldServer(final String... name) throws SocketException {
+	public HelloWorldServer(final String... resourceNames) throws SocketException {
 
 		// provide an instance of a Hello-World resource
-		for(final String s : name) {
-			System.out.println("adding resource " + s);
-			add(new HelloWorldResource(s));
+		for(final String resourceName : resourceNames) {
+			System.out.println("adding resource " + resourceName);
+			add(new HelloWorldResource(resourceName));
 		}
 	}
 
@@ -112,7 +112,7 @@ public class HelloWorldServer extends CoapServer {
 
 		@Override
 		public void handleGET(final CoapExchange exchange) {
-			System.out.println("GET Revceived: " + exchange.toString());
+			System.out.println("GET Received: " + exchange.toString());
 			// respond to the request
 			exchange.respond(String.valueOf(getName()) + internalID + " --> value: " + Math.random()*31);
 		}

@@ -35,8 +35,6 @@ import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
 
 /**
  * needs to be redone/cleaned up
- * @author simonlemoy
- *
  */
 public class GETClient {
 
@@ -61,7 +59,7 @@ public class GETClient {
 
 	}
 
-	private TCPServerEndpoint tcpClientEndpoint;
+	private TCPServerEndpoint tcpServerEndpoint;
 
 	public GETClient(final String resource) throws NoSuchAlgorithmException, ExecutionException {
 
@@ -72,15 +70,15 @@ public class GETClient {
 			final TLSServerConnectionConfig config = new TLSServerConnectionConfig(address, port);
 			final String keystore = "/Users/simonlemoy/Workspace_github/tls_tmp/server.ks";
 			config.secure("TLS", "password", new String[]{keystore}, "TLSv1.1", "TLSv1.2");
-			tcpClientEndpoint = new TcpServerEndpointImpl(config, resource);
-			final Future<?> connected  = tcpClientEndpoint.start();
+			tcpServerEndpoint = new TcpServerEndpointImpl(config, resource);
+			final Future<?> connected  = tcpServerEndpoint.start();
 			connected.get();
 
 			while(true) {
-				final Set<Entry<InetSocketAddress, CoapClient>> list = tcpClientEndpoint.getAllClient();
+				final Set<Entry<InetSocketAddress, CoapClient>> list = tcpServerEndpoint.getAllClient();
 				for(final Entry<InetSocketAddress, CoapClient> clientEntry : list) {
 					final CoapClient client = clientEntry.getValue();
-					System.out.println("requesting resource for " + clientEntry.getKey().toString());
+					System.out.println("requesting resource for " + clientEntry.getKey());
 
 					client.get(new CoapHandler() {
 
@@ -132,7 +130,7 @@ public class GETClient {
 		public CoapClient createCoapClient(final InetSocketAddress remote) {
 			final CoapClient client = super.createCoapClient(remote);
 			client.setURI(client.getURI() + "/" + resource);
-			System.out.println("new Client built for " + remote.toString());
+			System.out.println("new Client built for " + remote);
 			return client;
 		}
 	}
