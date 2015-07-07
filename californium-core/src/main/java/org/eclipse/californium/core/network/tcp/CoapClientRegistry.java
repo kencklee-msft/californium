@@ -23,16 +23,16 @@ import org.eclipse.californium.elements.tcp.ConnectionStateListener;
  * @author simonlemoy
  *
  */
-public abstract class CoapClientRegistry<K> implements ConnectionStateListener{
+public abstract class CoapClientRegistry implements ConnectionStateListener{
 
 	private final static Logger LOGGER = Logger.getLogger(CoapClientRegistry.class.getCanonicalName());
 
-	public final Map<K, CoapClient> coapClientLink;
+	public final Map<InetSocketAddress, CoapClient> coapClientLink;
 	private final TCPEndpoint endpoint;
 
 
 	public CoapClientRegistry(final boolean threadsafe, final TCPEndpoint endpoint) {
-		coapClientLink = threadsafe ? new ConcurrentHashMap<K, CoapClient>() : new HashMap<K, CoapClient>();
+		coapClientLink = threadsafe ? new ConcurrentHashMap<InetSocketAddress, CoapClient>() : new HashMap<InetSocketAddress, CoapClient>();
 		this.endpoint = endpoint;
 		endpoint.addConnectionStateListener(this);
 	}
@@ -47,7 +47,8 @@ public abstract class CoapClientRegistry<K> implements ConnectionStateListener{
 		if(info.getConnectionState().equals(ConnectionState.NEW_INCOMING_CONNECT)) {
 			final CoapClient client = new CoapClient();
 			client.setEndpoint(endpoint);
-			final K key = configureCoapClient(client, info.getRemote());
+			final InetSocketAddress key = info.getRemote();
+			configureCoapClient(client, key);
 			coapClientLink.put(key, client);
 		} else if(info.getConnectionState().equals(ConnectionState.NEW_INCOMING_DISCONNECT)) {
 			coapClientLink.remove(info.getRemote());
@@ -58,15 +59,15 @@ public abstract class CoapClientRegistry<K> implements ConnectionStateListener{
 		coapClientLink.clear();
 	}
 
-	public final CoapClient getClient(final K key) {
+	public final CoapClient getClient(final InetSocketAddress key) {
 		return coapClientLink.get(key);
 	}
 
-	public final CoapClient remove(final K key) {
+	public final CoapClient remove(final InetSocketAddress key) {
 		return coapClientLink.remove(key);
 	}
 
-	public final boolean containsKey(final K key) {
+	public final boolean containsKey(final InetSocketAddress key) {
 		return coapClientLink.containsKey(key);
 	}
 
@@ -74,7 +75,7 @@ public abstract class CoapClientRegistry<K> implements ConnectionStateListener{
 		return coapClientLink.containsValue(client);
 	}
 
-	public final Set<Entry<K, CoapClient>> getAllClient() {
+	public final Set<Entry<InetSocketAddress, CoapClient>> getAllClient() {
 		return coapClientLink.entrySet();
 	}
 
@@ -85,5 +86,5 @@ public abstract class CoapClientRegistry<K> implements ConnectionStateListener{
 	 * @param endpoint
 	 * @return
 	 */
-	public abstract K configureCoapClient(CoapClient client, InetSocketAddress remote);
+	public abstract void configureCoapClient(CoapClient client, InetSocketAddress remote);
 }
