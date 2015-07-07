@@ -16,7 +16,7 @@ import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
 
-public abstract class TCPServerEndpoint extends CoAPEndpoint implements ConnectionStateListener {
+public class TCPServerEndpoint extends CoAPEndpoint implements ConnectionStateListener {
 
 	private final static Logger LOGGER = Logger.getLogger(TCPServerEndpoint.class.getCanonicalName());
 
@@ -39,11 +39,10 @@ public abstract class TCPServerEndpoint extends CoAPEndpoint implements Connecti
 	public void stateChange(final ConnectionInfo info) {
 		LOGGER.log(Level.FINE, "Incoming connection state change from " + info.getRemote() + " to  " + info.getConnectionState());
 		if(info.getConnectionState().equals(ConnectionState.NEW_INCOMING_CONNECT)) {
-			final CoapClient client = new CoapClient();
+			final InetSocketAddress remote = info.getRemote();
+			final CoapClient client = createCoapClient(remote);
 			client.setEndpoint(this);
-			final InetSocketAddress key = info.getRemote();
-			configureCoapClient(client, key);
-			coapClientLink.put(key, client);
+			coapClientLink.put(remote, client);
 		} else if(info.getConnectionState().equals(ConnectionState.NEW_INCOMING_DISCONNECT)) {
 			coapClientLink.remove(info.getRemote());
 		}
@@ -73,12 +72,13 @@ public abstract class TCPServerEndpoint extends CoAPEndpoint implements Connecti
 		return coapClientLink.entrySet();
 	}
 
-
 	/**
 	 * This will be called when a new connection is established.
 	 * You will then receive an empty CoAP client with an endpoint associated with it
 	 * @param endpoint
 	 */
-	public abstract void configureCoapClient(CoapClient client, InetSocketAddress remote);
+	public CoapClient createCoapClient(final InetSocketAddress remote) {
+		return new CoapClient("coap", remote.getHostName(), remote.getPort());
+	}
 
 }

@@ -129,20 +129,12 @@ public class GETClient {
 		}
 
 		@Override
-		public void configureCoapClient(final CoapClient client,  final InetSocketAddress remote) {
+		public CoapClient createCoapClient(final InetSocketAddress remote) {
+			final CoapClient client = super.createCoapClient(remote);
+			client.setURI(client.getURI() + "/" + resource);
 			System.out.println("new Client built for " + remote.toString());
-			client.setURI(buildURI(remote, resource));
+			return client;
 		}
 	}
 
-	/**
-	 * coap://127.0.0.1:5683/${string_prompt}/
-	 * @param address
-	 * @return
-	 */
-	private String buildURI(final InetSocketAddress address, final String resource) {
-		final StringBuilder sb = new StringBuilder();
-		sb.append("coap://").append(address.getHostName()).append(':').append(address.getPort()).append('/').append(resource).append('/');
-		return sb.toString();
-	}
 }
