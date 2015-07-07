@@ -28,7 +28,7 @@ import org.eclipse.californium.core.CoapHandler;
 import org.eclipse.californium.core.CoapResponse;
 import org.eclipse.californium.core.Utils;
 import org.eclipse.californium.core.network.config.NetworkConfig;
-import org.eclipse.californium.core.network.tcp.TCPServerEndpoint;
+import org.eclipse.californium.core.network.tcp.TcpServerEndpoint;
 import org.eclipse.californium.elements.config.TCPConnectionConfig;
 import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
 
@@ -59,7 +59,7 @@ public class GETClient {
 
 	}
 
-	private TCPServerEndpoint tcpServerEndpoint;
+	private TcpServerEndpoint tcpServerEndpoint;
 
 	public GETClient(final String resource) throws NoSuchAlgorithmException, ExecutionException {
 
@@ -117,7 +117,7 @@ public class GETClient {
 		}
 	}
 
-	private class TcpServerEndpointImpl extends TCPServerEndpoint {
+	private class TcpServerEndpointImpl extends TcpServerEndpoint {
 
 		private final String resource;
 

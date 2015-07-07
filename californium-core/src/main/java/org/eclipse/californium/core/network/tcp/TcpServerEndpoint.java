@@ -16,9 +16,9 @@ import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
 
-public class TCPServerEndpoint extends CoAPEndpoint implements ConnectionStateListener {
+public class TcpServerEndpoint extends CoAPEndpoint implements ConnectionStateListener {
 
-	private final static Logger LOGGER = Logger.getLogger(TCPServerEndpoint.class.getCanonicalName());
+	private final static Logger LOGGER = Logger.getLogger(TcpServerEndpoint.class.getCanonicalName());
 
 	public final Map<InetSocketAddress, CoapClient> coapClientLink;
 
@@ -29,7 +29,7 @@ public class TCPServerEndpoint extends CoAPEndpoint implements ConnectionStateLi
 	 * @param connector the connector
 	 * @param config the config
 	 */
-	public TCPServerEndpoint(final TcpServerConnector connector, final NetworkConfig config) {
+	public TcpServerEndpoint(final TcpServerConnector connector, final NetworkConfig config) {
 		super(connector, config);
 		coapClientLink = new ConcurrentHashMap<InetSocketAddress, CoapClient>();
 		connector.setConnectionStateListener(this);
