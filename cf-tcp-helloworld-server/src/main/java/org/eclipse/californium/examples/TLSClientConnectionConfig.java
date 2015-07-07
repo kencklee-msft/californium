@@ -13,9 +13,9 @@ public class TLSClientConnectionConfig extends DefaultTCPConnectionConfig{
 	public TLSClientConnectionConfig(final String address, final int port) {
 		super(CommunicationRole.CLIENT, address, port);
 	}
-	
+
 	public void secure() throws SSLException, NoSuchAlgorithmException, KeyManagementException {
-		final SSLContext context = SSLContext.getInstance("TLSV1.2");
+		final SSLContext context = SSLContext.getInstance("TLSv1.2");
 		context.init(null, null, null);
 		setClientSSL(context);
 	}
