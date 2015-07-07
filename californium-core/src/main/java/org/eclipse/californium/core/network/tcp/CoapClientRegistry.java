@@ -15,15 +15,13 @@ import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 
 /**
- * this class is ment for server tcp connection only
- * 
- * If you build a TCP server that must serve to multiple TcpClient containing the coapServer (hence multiple coap Client from 1 tcp connection)
- * you must use this registry to keep track of you client.  Once a Connection is establish, the call will be make for you to create a CoAP client 
- * if you wish to do so.
- * @author simonlemoy
+ * This class is meant for server TCP connection only
  *
+ * If you build a TCP server that must serve to multiple TCP Clients containing the coapServer (hence multiple CoAP Client from 1 TCP connection)
+ * You must use this registry to keep track of your clients. Once a Connection is established, the call will be made for you to create a CoAP client
+ * if you wish to do so.
  */
-public abstract class CoapClientRegistry implements ConnectionStateListener{
+public abstract class CoapClientRegistry implements ConnectionStateListener {
 
 	private final static Logger LOGGER = Logger.getLogger(CoapClientRegistry.class.getCanonicalName());
 
@@ -81,10 +79,9 @@ public abstract class CoapClientRegistry implements ConnectionStateListener{
 
 
 	/**
-	 * this will be call when a new connection is established.  
-	 * you will then receive an empty CoAP client with an endpoint associated with it
+	 * This will be called when a new connection is established.
+	 * You will then receive an empty CoAP client with an endpoint associated with it
 	 * @param endpoint
-	 * @return
 	 */
 	public abstract void configureCoapClient(CoapClient client, InetSocketAddress remote);
 }
