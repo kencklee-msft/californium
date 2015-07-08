@@ -21,45 +21,27 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.KeyStoreBuilderParameters;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.eclipse.californium.core.network.config.DefaultTCPConnectionConfig;
+public class SSLContextProvider {
 
-/**
- * should be deleted
- * @author simonlemoy
- *
- */
-public class TLSServerConnectionConfig extends DefaultTCPConnectionConfig {
-	
 	private static final String NEW_ALGO = "NewSunX509";
 	private static final String JAVA_KEYSTORE = "JKS";
 	private static final String ALGO_SUN_JSSE = "SunJSSE";
-	
+
 	private char[] password;
 	private String protocol;
 	private SSLContext sslContext;
 	private String[] storeResourcesPath;
 
-	public TLSServerConnectionConfig(final String address, final int port) {
-		super(CommunicationRole.SERVER, address, port);
-	}
-	
-	public void secure(final String protocol, final String password, final String[] storeResourcesPath, final String... tlsVersions) throws SSLException, NoSuchAlgorithmException {
-		this.password = password.toCharArray();
+	public SSLContextProvider(final String protocol, final String password, final String... storeResourcesPath) {
 		this.protocol = protocol;
+		this.password = password.toCharArray();
 		this.storeResourcesPath = storeResourcesPath;
-		final String[] allSupportedVersion = new String[tlsVersions.length + 1];
-		for(int i = 0; i < tlsVersions.length; i++) {
-			allSupportedVersion[i] = tlsVersions[i];
-		}
-		allSupportedVersion[tlsVersions.length] = protocol;
-		setServerSSL(getSingletonSSLContext(), SSLCLientCertReq.NONE, tlsVersions);
 	}
 
-	private synchronized SSLContext getSingletonSSLContext() {
+	public synchronized SSLContext getSingletonSSLContext() {
 		if(sslContext == null) {
 			try{
 				String algorithm = Security.getProperty("ssl.KeyManagerFactory.algorithm");
