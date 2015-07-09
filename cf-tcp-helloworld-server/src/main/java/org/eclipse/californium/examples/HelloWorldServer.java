@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 
 import org.eclipse.californium.core.CoapResource;
@@ -31,7 +32,7 @@ import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.server.resources.CoapExchange;
-import org.eclipse.californium.elements.tcp.client.TcpClientConnector;
+import org.eclipse.californium.elements.tcp.client.TlsClientConnector;
 
 
 public class HelloWorldServer extends CoapServer {
@@ -54,9 +55,9 @@ public class HelloWorldServer extends CoapServer {
 
 			// create server
 			final HelloWorldServer server = new HelloWorldServer(list);
-			final TLSClientConnectionConfig config = new TLSClientConnectionConfig(address, port);
-			config.secure();
-			final CoAPEndpoint tcpClientEndpoint = new CoAPEndpoint(new TcpClientConnector(config), NetworkConfig.getStandard());
+			final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+			sslContext.init(null, null, null);
+			final CoAPEndpoint tcpClientEndpoint = new CoAPEndpoint(new TlsClientConnector(address, port, sslContext), NetworkConfig.getStandard());
 			//            tcpClientEndpoint.addConnectionStateListener(new ConnectionStateListener() {
 			//
 			//				@Override

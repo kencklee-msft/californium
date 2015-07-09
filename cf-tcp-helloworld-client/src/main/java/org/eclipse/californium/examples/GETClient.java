@@ -23,14 +23,16 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import javax.net.ssl.SSLContext;
+
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.CoapHandler;
 import org.eclipse.californium.core.CoapResponse;
 import org.eclipse.californium.core.Utils;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.tcp.TcpServerEndpoint;
-import org.eclipse.californium.elements.config.TCPConnectionConfig;
-import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
+import org.eclipse.californium.elements.tcp.server.TlsServerConnector;
+import org.eclipse.californium.elements.tcp.server.TlsServerConnector.SSLClientCertReq;
 
 
 /**
@@ -67,10 +69,10 @@ public class GETClient {
 		final int port = 5684;
 
 		try {
-			final TLSServerConnectionConfig config = new TLSServerConnectionConfig(address, port);
 			final String keystore = "/Users/simonlemoy/Workspace_github/tls_tmp/server.ks";
-			config.secure("TLS", "password", new String[]{keystore}, "TLSv1.1", "TLSv1.2");
-			tcpServerEndpoint = new TcpServerEndpointImpl(config, resource);
+			final SSLContextProvider contextProvider = new SSLContextProvider("TLS", "password", new String[]{keystore});
+			final String[] tlsVersions = new String[] {"TLS", "TLSv1.1", "TLSv1.2"};
+			tcpServerEndpoint = new TcpServerEndpointImpl(address, port, contextProvider.getSingletonSSLContext(), SSLClientCertReq.NONE, tlsVersions, resource);
 			final Future<?> connected  = tcpServerEndpoint.start();
 			connected.get();
 
@@ -121,8 +123,8 @@ public class GETClient {
 
 		private final String resource;
 
-		public TcpServerEndpointImpl(final TCPConnectionConfig cfg, final String resource) {
-			super(new TcpServerConnector(cfg), NetworkConfig.getStandard());
+		public TcpServerEndpointImpl(final String remoteAddress, final int remotePort, final SSLContext sslContext, final SSLClientCertReq clientCertRequest, final String[] supportedTLSVersions, final String resource) {
+			super(new TlsServerConnector(remoteAddress, remotePort, sslContext, clientCertRequest, supportedTLSVersions), NetworkConfig.getStandard());
 			this.resource = resource;
 		}
 
