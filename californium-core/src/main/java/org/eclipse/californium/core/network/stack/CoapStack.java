@@ -27,8 +27,8 @@ import org.eclipse.californium.core.coap.EmptyMessage;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.network.Exchange;
-import org.eclipse.californium.core.network.Outbox;
 import org.eclipse.californium.core.network.Exchange.Origin;
+import org.eclipse.californium.core.network.Outbox;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.server.MessageDeliverer;
 import org.eclipse.californium.elements.Connector;
@@ -82,13 +82,13 @@ public class CoapStack {
 	/** The LOGGER. */
 	final static Logger LOGGER = Logger.getLogger(CoapStack.class.getCanonicalName());
 
-	private List<Layer> layers;
-	private Outbox outbox;
-	private StackTopAdapter top;
+	private final List<Layer> layers;
+	private final Outbox outbox;
+	private final StackTopAdapter top;
 	private StackBottomAdapter bottom;
 	private MessageDeliverer deliverer;
 	
-	public CoapStack(NetworkConfig config, Outbox outbox) {
+	public CoapStack(final NetworkConfig config, final Outbox outbox) {
 		this.top = new StackTopAdapter();
 		this.outbox = outbox;
 		
@@ -114,65 +114,65 @@ public class CoapStack {
 	}
 	
 	// delegate to top
-	public void sendRequest(Request request) {
+	public void sendRequest(final Request request) {
 		top.sendRequest(request);
 	}
 
 	// delegate to top
-	public void sendResponse(Exchange exchange, Response response) {
+	public void sendResponse(final Exchange exchange, final Response response) {
 		top.sendResponse(exchange, response);
 	}
 
 	// delegate to top
-	public void sendEmptyMessage(Exchange exchange, EmptyMessage message) {
+	public void sendEmptyMessage(final Exchange exchange, final EmptyMessage message) {
 		top.sendEmptyMessage(exchange, message);
 	}
 
 	// delegate to bottom
-	public void receiveRequest(Exchange exchange, Request request) {
+	public void receiveRequest(final Exchange exchange, final Request request) {
 		bottom.receiveRequest(exchange, request);
 	}
 
 	// delegate to bottom
-	public void receiveResponse(Exchange exchange, Response response) {
+	public void receiveResponse(final Exchange exchange, final Response response) {
 		bottom.receiveResponse(exchange, response);
 	}
 
 	// delegate to bottom
-	public void receiveEmptyMessage(Exchange exchange, EmptyMessage message) {
+	public void receiveEmptyMessage(final Exchange exchange, final EmptyMessage message) {
 		bottom.receiveEmptyMessage(exchange, message);
 	}
 
-	public void setExecutor(ScheduledExecutorService executor) {
-		for (Layer layer:layers)
+	public void setExecutor(final ScheduledExecutorService executor) {
+		for (final Layer layer:layers)
 			layer.setExecutor(executor);
 	}
 	
-	public void setDeliverer(MessageDeliverer deliverer) {
+	public void setDeliverer(final MessageDeliverer deliverer) {
 		this.deliverer = deliverer;
 	}
 	
 	private class StackTopAdapter extends AbstractLayer {
 		
-		public void sendRequest(Request request) {
-			Exchange exchange = new Exchange(request, Origin.LOCAL);
+		public void sendRequest(final Request request) {
+			final Exchange exchange = new Exchange(request, Origin.LOCAL);
 			sendRequest(exchange, request); // layer method
 		}
 		
 		@Override
-		public void sendRequest(Exchange exchange, Request request) {
+		public void sendRequest(final Exchange exchange, final Request request) {
 			exchange.setRequest(request);
 			super.sendRequest(exchange, request);
 		}
 		
 		@Override
-		public void sendResponse(Exchange exchange, Response response) {
+		public void sendResponse(final Exchange exchange, final Response response) {
 			exchange.setResponse(response);
 			super.sendResponse(exchange, response);
 		}
 		
 		@Override
-		public void receiveRequest(Exchange exchange, Request request) {
+		public void receiveRequest(final Exchange exchange, final Request request) {
 			// if there is no BlockwiseLayer we still have to set it
 			if (exchange.getRequest() == null)
 				exchange.setRequest(request);
@@ -184,7 +184,7 @@ public class CoapStack {
 		}
 
 		@Override
-		public void receiveResponse(Exchange exchange, Response response) {
+		public void receiveResponse(final Exchange exchange, final Response response) {
 			if (!response.getOptions().hasObserve())
 				exchange.setComplete();
 			if (deliverer != null) {
@@ -195,7 +195,7 @@ public class CoapStack {
 		}
 		
 		@Override
-		public void receiveEmptyMessage(Exchange exchange, EmptyMessage message) {
+		public void receiveEmptyMessage(final Exchange exchange, final EmptyMessage message) {
 			// When empty messages reach the top of the CoAP stack we can ignore them. 
 		}
 	}
@@ -203,17 +203,17 @@ public class CoapStack {
 	private class StackBottomAdapter extends AbstractLayer {
 	
 		@Override
-		public void sendRequest(Exchange exchange, Request request) {
+		public void sendRequest(final Exchange exchange, final Request request) {
 			outbox.sendRequest(exchange, request);
 		}
 
 		@Override
-		public void sendResponse(Exchange exchange, Response response) {
+		public void sendResponse(final Exchange exchange, final Response response) {
 			outbox.sendResponse(exchange, response);
 		}
 
 		@Override
-		public void sendEmptyMessage(Exchange exchange, EmptyMessage message) {
+		public void sendEmptyMessage(final Exchange exchange, final EmptyMessage message) {
 			outbox.sendEmptyMessage(exchange, message);
 		}
 		

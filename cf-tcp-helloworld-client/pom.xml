@@ -4,17 +4,17 @@
 	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
 	<modelVersion>4.0.0</modelVersion>
-	
+
 	<parent>
 		<groupId>org.eclipse.californium</groupId>
 		<artifactId>root</artifactId>
 		<version>99.0.3-SNAPSHOT</version>
 	</parent>
-	<artifactId>cf-plugtest-server</artifactId>
+	<artifactId>cf-tcp-helloworld-client</artifactId>
 	<packaging>jar</packaging>
 
-	<name>Cf-PlugtestServer</name>
-	<description>Californium (Cf) ETSI Plugtest server</description>
+	<name>Cf-TCP-HelloWorldClient</name>
+	<description>Californium (Cf) example</description>
 
 	<dependencies>
 		<dependency>
@@ -40,7 +40,7 @@
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
-							<mainClass>org.eclipse.californium.plugtests.PlugtestServer</mainClass>
+							<mainClass>org.eclipse.californium.examples.GETClient</mainClass>
 							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
 						</manifest>
 					</archive>

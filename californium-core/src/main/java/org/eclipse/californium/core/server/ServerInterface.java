@@ -21,6 +21,8 @@ package org.eclipse.californium.core.server;
 
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Future;
 
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.server.resources.Resource;
@@ -50,7 +52,7 @@ public interface ServerInterface {
 	 * e.g. because none of its endpoints could be bound to their respective
 	 * ports
 	 */
-	void start();
+	Map<InetSocketAddress, Future<?>> start();
 
 	/**
 	 * Stops the server, i.e. unbinds it from all ports.
@@ -59,7 +61,7 @@ public interface ServerInterface {
 	 * be started again.
 	 * Implementations should stop all registered endpoints as part of this method.
 	 */
-	void stop();
+	Map<InetSocketAddress, Future<?>> stop();
 	
 	/**
 	 * Destroys the server, i.e. unbinds from all ports and frees all system
