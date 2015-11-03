@@ -37,21 +37,21 @@ public class TokenLayer extends AbstractLayer {
 	
 	private AtomicInteger counter;
 	
-	public TokenLayer(NetworkConfig config) {
+	public TokenLayer(final NetworkConfig config) {
 		if (config.getBoolean(NetworkConfig.Keys.USE_RANDOM_TOKEN_START))
 			counter = new AtomicInteger(new Random().nextInt());
 		else counter = new AtomicInteger(0);
 	}
 	
 	@Override
-	public void sendRequest(Exchange exchange, Request request) {
+	public void sendRequest(final Exchange exchange, final Request request) {
 		if (request.getToken() == null)
 			request.setToken(createNewToken());
 		super.sendRequest(exchange, request);
 	}
 
 	@Override
-	public void sendResponse(Exchange exchange, Response response) {
+	public void sendResponse(final Exchange exchange, final Response response) {
 		// A response must have the same token as the request it belongs to. If
 		// the token is empty, we must use a byte array of length 0.
 		if (response.getToken() == null) {
@@ -61,26 +61,26 @@ public class TokenLayer extends AbstractLayer {
 	}
 
 	@Override
-	public void sendEmptyMessage(Exchange exchange, EmptyMessage message) {
+	public void sendEmptyMessage(final Exchange exchange, final EmptyMessage message) {
 		super.sendEmptyMessage(exchange, message);
 	}
 
 	@Override
-	public void receiveRequest(Exchange exchange, Request request) {
+	public void receiveRequest(final Exchange exchange, final Request request) {
 		if (exchange.getCurrentRequest().getToken() == null)
 			throw new NullPointerException("Received requests's token cannot be null, use byte[0] for empty tokens");
 		super.receiveRequest(exchange, request);
 	}
 
 	@Override
-	public void receiveResponse(Exchange exchange, Response response) {
+	public void receiveResponse(final Exchange exchange, final Response response) {
 		if (response.getToken() == null)
 			throw new NullPointerException("Received response's token cannot be null, use byte[0] for empty tokens");
 		super.receiveResponse(exchange, response);
 	}
 
 	@Override
-	public void receiveEmptyMessage(Exchange exchange, EmptyMessage message) {
+	public void receiveEmptyMessage(final Exchange exchange, final EmptyMessage message) {
 		super.receiveEmptyMessage(exchange, message);
 	}
 	
@@ -89,7 +89,7 @@ public class TokenLayer extends AbstractLayer {
 	 * @return the new token
 	 */
 	private byte[] createNewToken() {
-		int token = counter.incrementAndGet();
+		final int token = counter.incrementAndGet();
 		return new byte[] { (byte) (token>>>24), (byte) (token>>>16), (byte) (token>>>8), (byte) token}; 
 	}
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2014, 2015 Institute for Pervasive Computing, ETH Zurich and others.
+ * Copyright (c) 2014 Institute for Pervasive Computing, ETH Zurich and others.
  * 
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -15,9 +15,7 @@
  *    Martin Lanter - architect and re-implementation
  *    Dominique Im Obersteg - parsers and initial implementation
  *    Daniel Pauli - parsers and initial implementation
- *    Kai Hudalla (Bosch Software Innovations GmbH) - logging
- *    Kai Hudalla (Bosch Software Innovations GmbH) - include client identity in Requests
- *                                                    (465073)
+ *    Kai Hudalla - logging
  ******************************************************************************/
 package org.eclipse.californium.core.network;
 
@@ -26,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -133,16 +132,16 @@ public class CoAPEndpoint implements Endpoint {
 	private boolean started;
 	
 	/** The list of endpoint observers (has nothing to do with CoAP observe relations) */
-	private List<EndpointObserver> observers = new ArrayList<EndpointObserver>(0);
+	private final List<EndpointObserver> observers = new ArrayList<EndpointObserver>(0);
 	
 	/** The list of interceptors */
-	private List<MessageInterceptor> interceptors = new ArrayList<MessageInterceptor>(0);
+	private final List<MessageInterceptor> interceptors = new ArrayList<MessageInterceptor>(0);
 
 	/** The matcher which matches incoming responses, akcs and rsts an exchange */
-	private Matcher matcher;
+	private final Matcher matcher;
 	
 	/** The serializer to serialize messages to bytes */
-	private Serializer serializer;
+	private final Serializer serializer;
 	
 	/**
 	 * Instantiates a new endpoint with an ephemeral port.
@@ -156,7 +155,7 @@ public class CoAPEndpoint implements Endpoint {
 	 *
 	 * @param port the port
 	 */
-	public CoAPEndpoint(int port) {
+	public CoAPEndpoint(final int port) {
 		this(new InetSocketAddress(port));
 	}
 
@@ -165,11 +164,11 @@ public class CoAPEndpoint implements Endpoint {
 	 *
 	 * @param address the address
 	 */
-	public CoAPEndpoint(InetSocketAddress address) {
+	public CoAPEndpoint(final InetSocketAddress address) {
 		this(address, NetworkConfig.getStandard());
 	}
 	
-	public CoAPEndpoint(NetworkConfig config) {
+	public CoAPEndpoint(final NetworkConfig config) {
 		this(new InetSocketAddress(0), config);
 	}
 	
@@ -179,7 +178,7 @@ public class CoAPEndpoint implements Endpoint {
 	 * @param port the UDP port
 	 * @param config the network configuration
 	 */
-	public CoAPEndpoint(int port, NetworkConfig config) {
+	public CoAPEndpoint(final int port, final NetworkConfig config) {
 		this(new InetSocketAddress(port), config);
 	}
 	
@@ -189,7 +188,7 @@ public class CoAPEndpoint implements Endpoint {
 	 * @param address the address
 	 * @param config the network configuration
 	 */
-	public CoAPEndpoint(InetSocketAddress address, NetworkConfig config) {
+	public CoAPEndpoint(final InetSocketAddress address, final NetworkConfig config) {
 		this(createUDPConnector(address, config), config);
 	}
 	
@@ -200,7 +199,7 @@ public class CoAPEndpoint implements Endpoint {
 	 * @param connector the connector
 	 * @param config the config
 	 */
-	public CoAPEndpoint(Connector connector, NetworkConfig config) {
+	public CoAPEndpoint(final Connector connector, final NetworkConfig config) {
 		this.config = config;
 		this.connector = connector;
 		this.serializer = new Serializer();
@@ -216,8 +215,8 @@ public class CoAPEndpoint implements Endpoint {
 	 * @param config the configuration
 	 * @return the connector
 	 */
-	private static Connector createUDPConnector(InetSocketAddress address, NetworkConfig config) {
-		UDPConnector c = new UDPConnector(address);
+	private static Connector createUDPConnector(final InetSocketAddress address, final NetworkConfig config) {
+		final UDPConnector c = new UDPConnector(address);
 		
 		c.setReceiverThreadCount(config.getInt(NetworkConfig.Keys.NETWORK_STAGE_RECEIVER_THREAD_COUNT));
 		c.setSenderThreadCount(config.getInt(NetworkConfig.Keys.NETWORK_STAGE_SENDER_THREAD_COUNT));
@@ -233,10 +232,10 @@ public class CoAPEndpoint implements Endpoint {
 	 * @see org.eclipse.californium.core.network.Endpoint#start()
 	 */
 	@Override
-	public synchronized void start() throws IOException {
+	public synchronized Future<?> start() throws IOException {
 		if (started) {
 			LOGGER.log(Level.FINE, "Endpoint at " + getAddress().toString() + " is already started");
-			return;
+			return null;
 		}
 		
 		if (!this.coapstack.hasDeliverer())
@@ -248,9 +247,12 @@ public class CoAPEndpoint implements Endpoint {
 			final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new Utils.DaemonThreadFactory());
 			setExecutor(executor);
 			addObserver(new EndpointObserver() {
-				public void started(Endpoint endpoint) { }
-				public void stopped(Endpoint endpoint) { }
-				public void destroyed(Endpoint endpoint) {
+				@Override
+				public void started(final Endpoint endpoint) { }
+				@Override
+				public void stopped(final Endpoint endpoint) { }
+				@Override
+				public void destroyed(final Endpoint endpoint) {
 					executor.shutdown();
 				}
 			});
@@ -261,11 +263,12 @@ public class CoAPEndpoint implements Endpoint {
 			
 			started = true;
 			matcher.start();
-			connector.start();
-			for (EndpointObserver obs:observers)
+			final Future<?> result  =connector.start();
+			for (final EndpointObserver obs:observers)
 				obs.started(this);
 			startExecutor();
-		} catch (IOException e) {
+			return result;
+		} catch (final IOException e) {
 			// free partially acquired resources
 			stop();
 			throw e;
@@ -282,6 +285,7 @@ public class CoAPEndpoint implements Endpoint {
 		// Run a task that does nothing but make sure at least one thread of
 		// the executor has started.
 		executeTask(new Runnable() {
+			@Override
 			public void run() { /* do nothing */ }
 		});
 	}
@@ -290,17 +294,19 @@ public class CoAPEndpoint implements Endpoint {
 	 * @see org.eclipse.californium.core.network.Endpoint#stop()
 	 */
 	@Override
-	public synchronized void stop() {
+	public synchronized Future<?> stop() {
 		if (!started) {
 			LOGGER.log(Level.INFO, "Endpoint at " + getAddress() + " is already stopped");
+			return null;
 		} else {
 			LOGGER.log(Level.INFO, "Stopping endpoint at address " + getAddress());
 			started = false;
-			connector.stop();
+			final Future<?> result = connector.stop();
 			matcher.stop();
-			for (EndpointObserver obs:observers)
+			for (final EndpointObserver obs:observers)
 				obs.stopped(this);
 			matcher.clear();
+			return result;
 		}
 	}
 	
@@ -313,7 +319,7 @@ public class CoAPEndpoint implements Endpoint {
 		if (started)
 			stop();
 		connector.destroy();
-		for (EndpointObserver obs:observers)
+		for (final EndpointObserver obs:observers)
 			obs.destroyed(this);
 	}
 	
@@ -337,7 +343,7 @@ public class CoAPEndpoint implements Endpoint {
 	 * @see org.eclipse.californium.core.network.Endpoint#setExecutor(java.util.concurrent.ScheduledExecutorService)
 	 */
 	@Override
-	public synchronized void setExecutor(ScheduledExecutorService executor) {
+	public synchronized void setExecutor(final ScheduledExecutorService executor) {
 		this.executor = executor;
 		this.coapstack.setExecutor(executor);
 		this.matcher.setExecutor(executor);
@@ -347,7 +353,7 @@ public class CoAPEndpoint implements Endpoint {
 	 * @see org.eclipse.californium.core.network.Endpoint#addObserver(org.eclipse.californium.core.network.EndpointObserver)
 	 */
 	@Override
-	public void addObserver(EndpointObserver obs) {
+	public void addObserver(final EndpointObserver obs) {
 		observers.add(obs);
 	}
 	
@@ -355,7 +361,7 @@ public class CoAPEndpoint implements Endpoint {
 	 * @see org.eclipse.californium.core.network.Endpoint#removeObserver(org.eclipse.californium.core.network.EndpointObserver)
 	 */
 	@Override
-	public void removeObserver(EndpointObserver obs) {
+	public void removeObserver(final EndpointObserver obs) {
 		observers.remove(obs);
 	}
 	
@@ -363,7 +369,7 @@ public class CoAPEndpoint implements Endpoint {
 	 * @see org.eclipse.californium.core.network.Endpoint#addInterceptor(org.eclipse.californium.core.network.MessageIntercepter)
 	 */
 	@Override
-	public void addInterceptor(MessageInterceptor interceptor) {
+	public void addInterceptor(final MessageInterceptor interceptor) {
 		interceptors.add(interceptor);
 	}
 	
@@ -371,7 +377,7 @@ public class CoAPEndpoint implements Endpoint {
 	 * @see org.eclipse.californium.core.network.Endpoint#removeInterceptor(org.eclipse.californium.core.network.MessageIntercepter)
 	 */
 	@Override
-	public void removeInterceptor(MessageInterceptor interceptor) {
+	public void removeInterceptor(final MessageInterceptor interceptor) {
 		interceptors.remove(interceptor);
 	}
 	
@@ -388,12 +394,12 @@ public class CoAPEndpoint implements Endpoint {
 	 */
 	@Override
 	public void sendRequest(final Request request) {
-		// always use protocol stage executor
 		executor.execute(new Runnable() {
+			@Override
 			public void run() {
 				try {
 					coapstack.sendRequest(request);
-				} catch (Throwable t) {
+				} catch (final Throwable t) {
 					t.printStackTrace();
 				}
 			}
@@ -405,21 +411,19 @@ public class CoAPEndpoint implements Endpoint {
 	 */
 	@Override
 	public void sendResponse(final Exchange exchange, final Response response) {
-		if (exchange.hasCustomExecutor()) {
-			// handle sending by protocol stage instead of business logic stage
-			executor.execute(new Runnable() {
-				public void run() {
-					try {
-						coapstack.sendResponse(exchange, response);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			});
-		} else {
-			// use same thread to save switching overhead
-			coapstack.sendResponse(exchange, response);
-		}
+		// TODO: If the currently executing thread is not a thread of the
+		// executor, a new task on the executor should be created to send the
+		// response. (Just uncomment this code)
+//		executor.execute(new Runnable() {
+//			public void run() {
+//				try {
+//					coapstack.sendResponse(exchange, response);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		});
+		coapstack.sendResponse(exchange, response);
 	}
 	
 	/* (non-Javadoc)
@@ -427,16 +431,23 @@ public class CoAPEndpoint implements Endpoint {
 	 */
 	@Override
 	public void sendEmptyMessage(final Exchange exchange, final EmptyMessage message) {
-		// send empty messages right away in the same thread to ensure execution order
-		// of CoapExchange.accept() / .reject() and similar cases.
-		coapstack.sendEmptyMessage(exchange, message);
+		executor.execute(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					coapstack.sendEmptyMessage(exchange, message);
+				} catch (final Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 	
 	/* (non-Javadoc)
 	 * @see org.eclipse.californium.core.network.Endpoint#setMessageDeliverer(org.eclipse.californium.core.server.MessageDeliverer)
 	 */
 	@Override
-	public void setMessageDeliverer(MessageDeliverer deliverer) {
+	public void setMessageDeliverer(final MessageDeliverer deliverer) {
 		coapstack.setDeliverer(deliverer);
 	}
 	
@@ -464,13 +475,7 @@ public class CoAPEndpoint implements Endpoint {
 	private class OutboxImpl implements Outbox {
 		
 		@Override
-		public void sendRequest(Exchange exchange, Request request) {
-			
-			if (request.getDestination() == null)
-				throw new NullPointerException("Request has no destination address");
-			if (request.getDestinationPort() == 0)
-				throw new NullPointerException("Request has no destination port");
-			
+		public void sendRequest(final Exchange exchange, final Request request) {
 			matcher.sendRequest(exchange, request);
 			
 			/* 
@@ -479,7 +484,7 @@ public class CoAPEndpoint implements Endpoint {
 			 * e.g., the MessageTracer.
 			 */
 			
-			for (MessageInterceptor interceptor:interceptors)
+			for (final MessageInterceptor interceptor:interceptors)
 				interceptor.sendRequest(request);
 
 			// MessageInterceptor might have canceled
@@ -488,13 +493,7 @@ public class CoAPEndpoint implements Endpoint {
 		}
 
 		@Override
-		public void sendResponse(Exchange exchange, Response response) {
-			
-			if (response.getDestination() == null)
-				throw new NullPointerException("Response has no destination address");
-			if (response.getDestinationPort() == 0)
-				throw new NullPointerException("Response has no destination port");
-			
+		public void sendResponse(final Exchange exchange, final Response response) {
 			matcher.sendResponse(exchange, response);
 			
 			/* 
@@ -503,7 +502,7 @@ public class CoAPEndpoint implements Endpoint {
 			 * e.g., the MessageTracer.
 			 */
 			
-			for (MessageInterceptor interceptor:interceptors)
+			for (final MessageInterceptor interceptor:interceptors)
 				interceptor.sendResponse(response);
 
 			// MessageInterceptor might have canceled
@@ -512,13 +511,7 @@ public class CoAPEndpoint implements Endpoint {
 		}
 
 		@Override
-		public void sendEmptyMessage(Exchange exchange, EmptyMessage message) {
-			
-			if (message.getDestination() == null)
-				throw new NullPointerException("Message has no destination address");
-			if (message.getDestinationPort() == 0)
-				throw new NullPointerException("Message has no destination port");
-			
+		public void sendEmptyMessage(final Exchange exchange, final EmptyMessage message) {
 			matcher.sendEmptyMessage(exchange, message);
 			
 			/* 
@@ -527,7 +520,7 @@ public class CoAPEndpoint implements Endpoint {
 			 * e.g., the MessageTracer.
 			 */
 			
-			for (MessageInterceptor interceptor:interceptors)
+			for (final MessageInterceptor interceptor:interceptors)
 				interceptor.sendEmptyMessage(message);
 
 			// MessageInterceptor might have canceled
@@ -553,7 +546,8 @@ public class CoAPEndpoint implements Endpoint {
 				throw new NullPointerException();
 			
 			// Create a new task to process this message
-			Runnable task = new Runnable() {
+			final Runnable task = new Runnable() {
+				@Override
 				public void run() {
 					receiveMessage(raw);
 				}
@@ -566,31 +560,28 @@ public class CoAPEndpoint implements Endpoint {
 		 * into a message, look for an associated exchange and forward it to
 		 * the stack of layers.
 		 */
-		private void receiveMessage(RawData raw) {
-			DataParser parser = new DataParser(raw.getBytes());
+		private void receiveMessage(final RawData raw) {
+			final DataParser parser = new DataParser(raw.getBytes());
 			
 			if (parser.isRequest()) {
 				// This is a request
 				Request request;
 				try {
 					request = parser.parseRequest();
-				} catch (IllegalStateException e) {
-					StringBuffer log = new StringBuffer("message format error caused by ")
-						.append(raw.getInetSocketAddress());
+				} catch (final IllegalStateException e) {
+					String log = "message format error caused by " + raw.getInetSocketAddress();
 					if (!parser.isReply()) {
 						// manually build RST from raw information
-						EmptyMessage rst = new EmptyMessage(Type.RST);
+						final EmptyMessage rst = new EmptyMessage(Type.RST);
 						rst.setDestination(raw.getAddress());
 						rst.setDestinationPort(raw.getPort());
 						rst.setMID(parser.getMID());
-						for (MessageInterceptor interceptor:interceptors)
+						for (final MessageInterceptor interceptor:interceptors)
 							interceptor.sendEmptyMessage(rst);
 						connector.send(serializer.serialize(rst));
-						log.append(" and reset");
+						log += " and reseted";
 					}
-					if (LOGGER.isLoggable(Level.INFO)) {
-						LOGGER.info(log.toString());
-					}
+					LOGGER.info(log);
 					return;
 				}
 				request.setSource(raw.getAddress());
@@ -603,12 +594,12 @@ public class CoAPEndpoint implements Endpoint {
 				 * e.g., the MessageTracer.
 				 */
 				
-				for (MessageInterceptor interceptor:interceptors)
+				for (final MessageInterceptor interceptor:interceptors)
 					interceptor.receiveRequest(request);
 
 				// MessageInterceptor might have canceled
 				if (!request.isCanceled()) {
-					Exchange exchange = matcher.receiveRequest(request);
+					final Exchange exchange = matcher.receiveRequest(request);
 					if (exchange != null) {
 						exchange.setEndpoint(CoAPEndpoint.this);
 						coapstack.receiveRequest(exchange, request);
@@ -617,7 +608,7 @@ public class CoAPEndpoint implements Endpoint {
 				
 			} else if (parser.isResponse()) {
 				// This is a response
-				Response response = parser.parseResponse();
+				final Response response = parser.parseResponse();
 				response.setSource(raw.getAddress());
 				response.setSourcePort(raw.getPort());
 				
@@ -627,12 +618,12 @@ public class CoAPEndpoint implements Endpoint {
 				 * e.g., the MessageTracer.
 				 */
 				
-				for (MessageInterceptor interceptor:interceptors)
+				for (final MessageInterceptor interceptor:interceptors)
 					interceptor.receiveResponse(response);
 
 				// MessageInterceptor might have canceled
 				if (!response.isCanceled()) {
-					Exchange exchange = matcher.receiveResponse(response);
+					final Exchange exchange = matcher.receiveResponse(response);
 					if (exchange != null) {
 						exchange.setEndpoint(CoAPEndpoint.this);
 						response.setRTT(System.currentTimeMillis() - exchange.getTimestamp());
@@ -645,7 +636,7 @@ public class CoAPEndpoint implements Endpoint {
 				
 			} else if (parser.isEmpty()) {
 				// This is an empty message
-				EmptyMessage message = parser.parseEmptyMessage();
+				final EmptyMessage message = parser.parseEmptyMessage();
 				message.setSource(raw.getAddress());
 				message.setSourcePort(raw.getPort());
 				
@@ -655,7 +646,7 @@ public class CoAPEndpoint implements Endpoint {
 				 * e.g., the MessageTracer.
 				 */
 				
-				for (MessageInterceptor interceptor:interceptors)
+				for (final MessageInterceptor interceptor:interceptors)
 					interceptor.receiveEmptyMessage(message);
 
 				// MessageInterceptor might have canceled
@@ -665,7 +656,7 @@ public class CoAPEndpoint implements Endpoint {
 						LOGGER.info("Responding to ping by " + raw.getInetSocketAddress());
 						reject(message);
 					} else {
-						Exchange exchange = matcher.receiveEmptyMessage(message);
+						final Exchange exchange = matcher.receiveEmptyMessage(message);
 						if (exchange != null) {
 							exchange.setEndpoint(CoAPEndpoint.this);
 							coapstack.receiveEmptyMessage(exchange, message);
@@ -677,9 +668,9 @@ public class CoAPEndpoint implements Endpoint {
 			}
 		}
 		
-		private void reject(Message message) {
-			EmptyMessage rst = EmptyMessage.newRST(message);
-			for (MessageInterceptor interceptor:interceptors)
+		private void reject(final Message message) {
+			final EmptyMessage rst = EmptyMessage.newRST(message);
+			for (final MessageInterceptor interceptor:interceptors)
 				interceptor.sendEmptyMessage(rst);
 			connector.send(serializer.serialize(rst));
 		}
@@ -693,10 +684,11 @@ public class CoAPEndpoint implements Endpoint {
 	 */
 	private void executeTask(final Runnable task) {
 		executor.execute(new Runnable() {
+			@Override
 			public void run() {
 				try {
 					task.run();
-				} catch (Throwable t) {
+				} catch (final Throwable t) {
 					t.printStackTrace();
 				}
 			}

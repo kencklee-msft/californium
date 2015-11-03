@@ -22,8 +22,11 @@ package org.eclipse.californium.core;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -121,7 +124,7 @@ public class CoapServer implements ServerInterface {
 	 * 
 	 * @param ports the ports to bind to
 	 */
-	public CoapServer(int... ports) {
+	public CoapServer(final int... ports) {
 		this(NetworkConfig.getStandard(), ports);
 	}
 	
@@ -133,7 +136,7 @@ public class CoapServer implements ServerInterface {
 	 * {@link NetworkConfig#getStandard()} is used.
 	 * @param ports the ports to bind to
 	 */
-	public CoapServer(NetworkConfig config, int... ports) {
+	public CoapServer(final NetworkConfig config, final int... ports) {
 		
 		// global configuration that is passed down (can be observed for changes)
 		if (config != null) {
@@ -146,7 +149,7 @@ public class CoapServer implements ServerInterface {
 		this.root = createRoot();
 		this.deliverer = new ServerMessageDeliverer(root);
 		
-		CoapResource well_known = new CoapResource(".well-known");
+		final CoapResource well_known = new CoapResource(".well-known");
 		well_known.setVisible(false);
 		well_known.add(new DiscoveryResource(root));
 		root.add(well_known);
@@ -156,16 +159,16 @@ public class CoapServer implements ServerInterface {
 		// sets the central thread pool for the protocol stage over all endpoints
 		this.executor = Executors.newScheduledThreadPool( config.getInt(NetworkConfig.Keys.PROTOCOL_STAGE_THREAD_COUNT) );
 		// create endpoint for each port
-		for (int port:ports)
+		for (final int port:ports)
 			addEndpoint(new CoAPEndpoint(port, this.config));
 	}
 	
-	public void setExecutor(ScheduledExecutorService executor) {
+	public void setExecutor(final ScheduledExecutorService executor) {
 		
 		if (this.executor!=null) this.executor.shutdown();
 		
 		this.executor = executor;
-		for (Endpoint ep:endpoints)
+		for (final Endpoint ep:endpoints)
 			ep.setExecutor(executor);
 	}
 	
@@ -173,32 +176,36 @@ public class CoapServer implements ServerInterface {
 	 * Starts the server by starting all endpoints this server is assigned to.
 	 * Each endpoint binds to its port. If no endpoint is assigned to the
 	 * server, an endpoint is started on the port defined in the config.
+	 * 
+	 * @TODO - should not be a map, should be a List of Pair or Object
 	 */
 	@Override
-	public void start() {
+	public Map<InetSocketAddress, Future<?>> start() {
 		
 		LOGGER.info("Starting server");
-		
+		final Map<InetSocketAddress, Future<?>> enpointStateMap = new HashMap<InetSocketAddress, Future<?>>();
 		if (endpoints.isEmpty()) {
 			// servers should bind to the configured port (while clients should use an ephemeral port through the default endpoint)
-			int port = config.getInt(NetworkConfig.Keys.COAP_PORT);
+			final int port = config.getInt(NetworkConfig.Keys.COAP_PORT);
 			LOGGER.info("No endpoints have been defined for server, setting up server endpoint on default port " + port);
 			addEndpoint(new CoAPEndpoint(port, this.config));
 		}
 		
 		int started = 0;
-		for (Endpoint ep:endpoints) {
+		for (final Endpoint ep:endpoints) {
 			try {
-				ep.start();
+				final Future<?> f = ep.start();
+				enpointStateMap.put(ep.getAddress(), f);
 				// only reached on success
 				++started;
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				LOGGER.severe(e.getMessage() + " at " + ep.getAddress());
 			}
 		}
 		if (started==0) {
 			throw new IllegalStateException("None of the server endpoints could be started");
 		}
+		return enpointStateMap;
 	}
 	
 	/**
@@ -206,10 +213,14 @@ public class CoapServer implements ServerInterface {
 	 * resources as possible to still be able to be re-started with the previous binds.
 	 */
 	@Override
-	public void stop() {
+	public Map<InetSocketAddress, Future<?>> stop() {
 		LOGGER.info("Stopping server");
-		for (Endpoint ep:endpoints)
-			ep.stop();
+		final Map<InetSocketAddress, Future<?>> enpointStateMap = new HashMap<InetSocketAddress, Future<?>>();
+		for (final Endpoint ep:endpoints) {
+			final Future<?> f = ep.stop();
+			enpointStateMap.put(ep.getAddress(), f);
+		}
+		return enpointStateMap;
 	}
 	
 	/**
@@ -218,15 +229,15 @@ public class CoapServer implements ServerInterface {
 	@Override
 	public void destroy() {
 		LOGGER.info("Destroy server");
-		for (Endpoint ep:endpoints)
+		for (final Endpoint ep:endpoints)
 			ep.destroy();
 		executor.shutdown(); // cannot be started again
 		try {
-			boolean succ = executor.awaitTermination(5, TimeUnit.SECONDS);
+			final boolean succ = executor.awaitTermination(5, TimeUnit.SECONDS);
 			if (!succ)
-				LOGGER.warning("Server executor did not shutdown in time");
-		} catch (InterruptedException e) {
-			LOGGER.log(Level.WARNING, "Exception while terminating server executor", e);
+				LOGGER.warning("Stack executor did not shutdown in time");
+		} catch (final InterruptedException e) {
+			LOGGER.log(Level.WARNING, "Exception while terminating stack executor", e);
 		}
 	}
 	
@@ -235,9 +246,9 @@ public class CoapServer implements ServerInterface {
 	 *
 	 * @param deliverer the new message deliverer
 	 */
-	public void setMessageDeliverer(MessageDeliverer deliverer) {
+	public void setMessageDeliverer(final MessageDeliverer deliverer) {
 		this.deliverer = deliverer;
-		for (Endpoint endpoint:endpoints)
+		for (final Endpoint endpoint:endpoints)
 			endpoint.setMessageDeliverer(deliverer);
 	}
 	
@@ -260,7 +271,7 @@ public class CoapServer implements ServerInterface {
 	 * @param endpoint the endpoint to add
 	 */
 	@Override
-	public void addEndpoint(Endpoint endpoint) {
+	public void addEndpoint(final Endpoint endpoint) {
 		endpoint.setMessageDeliverer(deliverer);
 		endpoint.setExecutor(executor);
 		endpoints.add(endpoint);
@@ -282,10 +293,10 @@ public class CoapServer implements ServerInterface {
 	 * @return the endpoint 
 	 */
 	@Override
-	public Endpoint getEndpoint(int port) {
+	public Endpoint getEndpoint(final int port) {
 		Endpoint endpoint = null;
 
-		for (Endpoint ep : endpoints) {
+		for (final Endpoint ep : endpoints) {
 			if (ep.getAddress().getPort() == port) {
 				endpoint = ep;
 			}
@@ -299,10 +310,10 @@ public class CoapServer implements ServerInterface {
 	 * @return the endpoint 
 	 */
 	@Override
-	public Endpoint getEndpoint(InetSocketAddress address) {
+	public Endpoint getEndpoint(final InetSocketAddress address) {
 		Endpoint endpoint = null;
 
-		for (Endpoint ep : endpoints) {
+		for (final Endpoint ep : endpoints) {
 			if (ep.getAddress().equals(address)) {
 				endpoint = ep;
 				break;
@@ -318,14 +329,14 @@ public class CoapServer implements ServerInterface {
 	 * @return the server
 	 */
 	@Override
-	public CoapServer add(Resource... resources) {
-		for (Resource r:resources)
+	public CoapServer add(final Resource... resources) {
+		for (final Resource r:resources)
 			root.add(r);
 		return this;
 	}
 	
 	@Override
-	public boolean remove(Resource resource) {
+	public boolean remove(final Resource resource) {
 		return root.remove(resource);
 	}
 
@@ -374,10 +385,11 @@ public class CoapServer implements ServerInterface {
 		}
 		
 		@Override
-		public void handleGET(CoapExchange exchange) {
+		public void handleGET(final CoapExchange exchange) {
 			exchange.respond(ResponseCode.CONTENT, msg);
 		}
 		
+		@Override
 		public List<Endpoint> getEndpoints() {
 			return CoapServer.this.getEndpoints();
 		}

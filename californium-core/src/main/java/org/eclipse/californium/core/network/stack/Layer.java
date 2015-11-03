@@ -141,7 +141,7 @@ public interface Layer {
 	public static class TopDownBuilder {
 		
 		/** The stack in order as added */
-		private LinkedList<Layer> stack = new LinkedList<Layer>();
+		private final LinkedList<Layer> stack = new LinkedList<Layer>();
 		
 		/**
 		 * Adds the specified layer below the currently lowest layer.
@@ -149,7 +149,7 @@ public interface Layer {
 		 * @param layer the layer
 		 * @return the builder
 		 */
-		public TopDownBuilder add(Layer layer) {
+		public TopDownBuilder add(final Layer layer) {
 			if (stack.size() > 0)
 				stack.getLast().setLowerLayer(layer);
 			stack.add(layer);
@@ -174,7 +174,7 @@ public interface Layer {
 	public static class BottomUpBuilder {
 		
 		/** The layers in order as added. */
-		private LinkedList<Layer> stack = new LinkedList<Layer>();
+		private final LinkedList<Layer> stack = new LinkedList<Layer>();
 		
 		/**
 		 * Adds the specified layer above the currently uppermost layer.
@@ -182,7 +182,7 @@ public interface Layer {
 		 * @param layer the layer
 		 * @return the bottom up builder
 		 */
-		public BottomUpBuilder add(Layer layer) {
+		public BottomUpBuilder add(final Layer layer) {
 			stack.getLast().setUpperLayer(layer);
 			return this;
 		}

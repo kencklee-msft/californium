@@ -22,6 +22,7 @@ package org.eclipse.californium.core.network;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.eclipse.californium.core.coap.EmptyMessage;
@@ -48,13 +49,13 @@ public interface Endpoint {
 	 * @throws IOException if the endpoint could not be started, e.g. because
 	 * the endpoint's port is already in use.
 	 */
-	public void start() throws IOException;
+	public Future<?> start() throws IOException;
 
 	/**
 	 * Stop this endpoint and all its components, e.g., the connector. A
 	 * stopped endpoint can be started again.
 	 */
-	public void stop();
+	public Future<?> stop();
 
 	/**
 	 * Destroys the endpoint and all its components. A destroyed endpoint cannot
